@@ -13,10 +13,13 @@ namespace Raytracing {
     public class LightSource {
         public Rgba32 color { get; private set; }
         public Vector position { get; private set; }
-
         public LightSource(Vector pos) {
             position = pos;
             color = Rgba32.White;
+        }
+        public LightSource(Vector pos, Rgba32 col) {
+            position = pos;
+            color = col;
         }
     }
 
