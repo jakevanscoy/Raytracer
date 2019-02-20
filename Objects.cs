@@ -110,7 +110,7 @@ namespace Raytracing {
             this.material = material;
 
             // default world "up" vector
-            Vector up = Vector.Build.DenseOfArray(new float[] {0.0f, 0.0f, 1.0f});
+            Vector up = Vector.Build.DenseOfArray(new float[] {0.0f, 0.0f, -1.0f});
             // normal x up = 'horizontal' vector H of the plane
             Vector H = normal.CrossProduct(up);
             // normal x H = 'vertical' vector V of the plane
@@ -146,7 +146,6 @@ namespace Raytracing {
                 normal[0] = normal1[0];
             }
             normal[0] = this.normal;
-            // System.Console.WriteLine(i0 || i1);
 
             return (i0 || i1);
         }
@@ -207,8 +206,8 @@ namespace Raytracing {
                 if (t0 < 0) return false; // both t0 and t1 are negative
             }
 
-            intersection[0] = ray.origin + ray.direction * t0;
-            intersection[1] = ray.origin + ray.direction * t1;
+            intersection[0] = (ray.origin + ray.direction * t0);
+            intersection[1] = (ray.origin + ray.direction * t1);
 
             Vector i0tmp = intersection[0] - center;
             Vector i1tmp = intersection[1] - center;
@@ -261,17 +260,29 @@ namespace Raytracing {
         }
 
         public static Vector ToVector(this Rgba32 color) {
-            float R = color.ToVector4().X;
-            float G = color.ToVector4().Y;
-            float B = color.ToVector4().Z;
+            float R = ByteToFloat(color.R);
+            float G = ByteToFloat(color.G);
+            float B = ByteToFloat(color.B);
             return Vector.Build.DenseOfArray(new float[] {R, G, B});
         }
 
+        public static Vector Multiply(this Vector vector, Vector other) {
+            Vector result = Vector.Build.Dense(3);
+            result[0] = vector[0] * other[0];
+            result[1] = vector[1] * other[1];
+            result[2] = vector[2] * other[2];
+            return result;
+        }
+        public static float ByteToFloat(byte b) {
+            return b / 255.0f;
+        }
+
         public static Rgba32 ToColor(this Vector vector) {
-            float R = vector[0];
-            float G = vector[1];
-            float B = vector[2];
+            float R = Math.Max(vector[0], 0);
+            float G = Math.Max(vector[1], 0);
+            float B = Math.Max(vector[2], 0);
             float A = 1.0f;
+    
             return new Rgba32(R, G, B, A);
         }
 

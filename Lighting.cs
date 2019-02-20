@@ -30,18 +30,17 @@ namespace Raytracing {
             origin = O;
             direction = D;
         }
-        
+    
         // Perfect reflection:
         // R = S + 2a
         // R: reflected ray
-        // S: shadow vector, ray from light source -> intersection point (I)
+        // S: ray from source -> intersection point (I)
         // a: -(S . N) / len(N)^2
         // N: normal vector of an object at intersection point I
         public static Ray Reflect(Ray S, Vector N, Vector I) {
-            float n2 = (float)N.L2Norm() * (float)N.L2Norm();
-            Vector A = (S.direction.DotProduct(N) / n2) * N;
-            Vector S2A = S.direction + (2 * A);
-            Ray R = new Ray(I, S2A.Normalize());
+            Vector rayO = I + N * 0.0001f;
+            Vector rayD = (S.direction - 2 * S.direction.DotProduct(N) * N).Normalize();
+            Ray R = new Ray(rayO, rayD);
             return R;
         }
     }
@@ -79,34 +78,44 @@ namespace Raytracing {
             // add ambient lighting             
             Vector La = world.ambientLight.ToVector();
             float ka = world.ambientCoefficient;
-            L += (ka * La);
-            
+            L += (La * ka);
+
             // add up diffuse/specular lighting for each light
             Vector Ld = Vector.Build.DenseOfArray(new float[]{0.0f, 0.0f, 0.0f});
             Vector Ls = Vector.Build.DenseOfArray(new float[]{0.0f, 0.0f, 0.0f});
+
             // object/material diffuse/specular colors
             Vector Od = material.diffuseColor.ToVector();
             Vector Os = material.specularColor.ToVector();
+
             foreach(LightSource Li in world.GetLightSources()) {
                 // shadow ray
                 Vector Sdir = (Li.position - intersectionPoint).Normalize();
-                Vector Odir = (camera.center - intersectionPoint).Normalize();
                 Ray S = new Ray(Li.position, Sdir);
+                // viewing direction
+                Vector V = (intersectionPoint - camera.center).Normalize();
+                // reflected ray
                 Ray R = Ray.Reflect(S, normal, intersectionPoint);
-                
-                // diffuse
-                Vector LiOd = Li.color.ToVector().CrossProduct(Od);
-                float SdotN = Math.Max(normal.DotProduct(S.direction), 0.0f);
-                Ld += (SdotN * LiOd);
-
-                // specular
-                Vector LiOs = Li.color.ToVector().CrossProduct(Os).Normalize();
-                float RdotV = R.direction.DotProduct(Odir);
-                Ls += (RdotV * LiOs);
+    
+                bool shaded = false;
+                foreach(Object3D o in world.objects) {
+                    shaded = shaded? true : o.Intersect(S, out var I, out var N);
+                }
+                if(!shaded) {
+                    // diffuse
+                    Vector LiOd = Li.color.ToVector().Multiply(Od);
+                    float SdotN = Math.Max(S.direction.DotProduct(normal), 0.0f);
+                    Ld += (SdotN * LiOd);
+                    // specular
+                    Vector LiOs = Li.color.ToVector().Multiply(Os);
+                    float RdotV = (float)Math.Pow(Math.Max(R.direction.DotProduct(V), 0.0f), material.specularExponent);
+                    Ls += (RdotV * LiOs);
+                }
             }
             Ld *= material.kDiffuse;
             Ls *= material.kSpecular;
-            L += Ld + Ls;
+            L += Ld;
+            L += Ls;
 
             return L.ToColor();
         }

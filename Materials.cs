@@ -31,9 +31,11 @@ namespace Raytracing {
 
     public class PhongMaterial : Material {
         public PhongIlluminationModel lightingModel { get; private set; }
+        
         // material color variables 
         public Rgba32 diffuseColor  { get; private set; }
         public Rgba32 specularColor { get; private set; }
+
         // color coefficients
         public float kDiffuse  { get; private set; }
         public float kSpecular { get; private set; }

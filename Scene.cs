@@ -24,7 +24,7 @@ namespace Raytracing {
             up = Vector.Build.DenseOfArray(new float[]{0.0f, 1.0f, 0.0f});
             objects = new List<Object3D>();
             ambientLight = new Rgba32(1.0f, 1.0f, 1.0f);
-            ambientCoefficient = 0.5f;
+            ambientCoefficient = 0.0f;
             background = new Rgba32(0.5f, 0.6f, 1.0f, 1.0f);
             lights = new List<LightSource>();
         }
@@ -82,7 +82,7 @@ namespace Raytracing {
         public Camera(Vector center, Vector lookAt, Vector up, World world) {
             this.center = center;
             this.lookAt = lookAt;
-            this.up = up;
+            this.up = world.up;
             this.world = world;
             //viewTransform
             var M = Matrix<float>.Build;
@@ -95,7 +95,7 @@ namespace Raytracing {
         public Rgba32 CastRay(World w, float x_s, float y_s) {
             Vector rayOrigin = this.center;
             Vector currentLookAt = Vector.Build.DenseOfArray(
-                new float[] { lookAt[0] + x_s, lookAt[1] + y_s, lookAt[2] } //- 1.5f }
+                new float[] { lookAt[0] + x_s, lookAt[1] + y_s, lookAt[2] }
             );
             Vector rayDirection = Extensions.Normalize(currentLookAt - this.center);
             Ray ray = new Ray(rayOrigin, rayDirection);
