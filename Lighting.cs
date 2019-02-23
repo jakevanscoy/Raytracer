@@ -94,7 +94,7 @@ namespace Raytracing {
                 // Vector Sdir = (intersectionPoint - Li.position).Normalize();
                 Ray S = new Ray(intersectionPoint, Sdir);
                 // viewing direction
-                Vector V = (intersectionPoint - Li.position).Normalize();
+                Vector V = (intersectionPoint - camera.center).Normalize();
                 // Vector V = (intersectionPoint - camera.center).Normalize();
                 // reflected ray
                 Ray R = Ray.Reflect(S, normal, intersectionPoint);
