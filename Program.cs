@@ -19,7 +19,7 @@ namespace Raytracing {
         public Raytracer(int width = 800, int height = 800) {
             // initialize default world and Object3Ds
             world = new World(width, height);
-            LightSource l1 = new LightSource(Vector.Build.DenseOfArray(new float[] {0.0f, -5.0f, -3.0f}));
+            LightSource l1 = new LightSource(Vector.Build.DenseOfArray(new float[] {5.0f, -1.0f, -3.0f}));
             world.AddLightSource(l1);
             // initialize camera
             Vector cameraCenter = Vector.Build.DenseOfArray(new float[] { -0.3f, -0.3f, -3.0f });
@@ -33,7 +33,7 @@ namespace Raytracing {
             Vector s0Center = Vector.Build.DenseOfArray(new float[] { -0.33f,  -0.2f,  -1.75f });
             float s0Radius = 0.15f;
             Rgba32[] s0colors = new Rgba32[] { Rgba32.Blue, Rgba32.White };
-            float[] s0coefficients = new float[] { 1.0f, 0.2f };
+            float[] s0coefficients = new float[] { 1.0f, 1.0f };
             PhongMaterial s0PhongMaterial = new PhongMaterial(illuminationModel, s0colors, s0coefficients, 1.0f);
             Sphere sphere0 = new Sphere(s0Center, s0Radius, s0PhongMaterial);
             
@@ -67,7 +67,7 @@ namespace Raytracing {
             // screen coordinates
             float[] S = {
                 -1.0f, -1.0f / whRatio, // x0, y0
-                    1.0f,  1.0f / whRatio  // x1, y1
+                1.0f,  1.0f / whRatio  // x1, y1
             };
             // variables to increment x and y screen coordinates
             float x_inc = (S[2] - S[0]) / image.Width;
@@ -84,11 +84,10 @@ namespace Raytracing {
                 }
             );
             if(fileName != "") {
-                Console.WriteLine("Saving image to " + fileName);
+                // Console.WriteLine("Saving image to " + fileName);
                 image.Save(fileName);
             }
             return image;
-            
         }
     }
     class Program
@@ -97,20 +96,29 @@ namespace Raytracing {
         { 
             Console.WriteLine("Initializing Raytracer...");   
            
-            int width  = 400, 
-                height = 400;
+            int width  = 800, 
+                height = 800;
             Raytracer raytracer = new Raytracer(width, height);
-            var gifEncode = new GifEncoder();
-            Console.WriteLine("Rendering Image...");   
+            Console.WriteLine("Rendering Images...");
+            var frames = 120;
             var watch = System.Diagnostics.Stopwatch.StartNew();
-            using(FileStream fs = File.Create("out.gif")) {
-                for(var i = 0; i < 24; i++) {
-                    raytracer.world.lights[0].position[2] += 0.20f;
-                    var image = raytracer.Render("out/img_"+i+".png");
-                    System.Console.WriteLine("\r");
-                    // gifEncode.Encode<Rgba32>(image, fs);
+
+            for(var i = 1; i <= frames; i++) {
+                raytracer.world.lights[0].position[0] -= 0.10f;
+                var image = raytracer.Render("out/img_"+i+".png");
+                System.Console.Write("Progress: ");
+                var normalProg = ((float)i / (float)frames) * 50;
+                System.Console.Write("frame: " + (i+1) + " / " + frames + " {");
+                for(int c = 0; c < normalProg; c++) {
+                    System.Console.Write("|");
                 }
-                fs.Close();
+                for(int c = (int)normalProg; c < 50; c++) {
+                    System.Console.Write(" ");
+                }
+                System.Console.Write("}");  
+
+                System.Console.Write(String.Format(" {0:n}%", normalProg*2));              
+                System.Console.Write("\r");
             }
             watch.Stop();
             var time = watch.Elapsed.TotalSeconds;

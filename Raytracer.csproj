@@ -8,6 +8,7 @@
   <ItemGroup>
     <PackageReference Include="MathNet.Numerics" Version="4.7.0" />
     <PackageReference Include="SixLabors.ImageSharp" Version="1.0.0-beta0005" />
+    <PackageReference Include="OpenGL.Net" Version="0.7.1" />
   </ItemGroup>
 
 </Project>

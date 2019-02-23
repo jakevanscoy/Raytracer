@@ -34,12 +34,12 @@ namespace Raytracing {
         // Perfect reflection:
         // R = S + 2a
         // R: reflected ray
-        // S: ray from source -> intersection point (I)
+        // S: ray from intersection point (I) -> source 
         // a: -(S . N) / len(N)^2
         // N: normal vector of an object at intersection point I
         public static Ray Reflect(Ray S, Vector N, Vector I) {
-            Vector rayO = I + N * 0.0001f;
-            Vector rayD = (S.direction - 2 * S.direction.DotProduct(N) * N).Normalize();
+            Vector rayO = I; // (I + N * 0.0001f).Normalize();
+            Vector rayD = (S.direction - (2 * S.direction.DotProduct(N) * N)).Normalize();
             Ray R = new Ray(rayO, rayD);
             return R;
         }
@@ -91,9 +91,11 @@ namespace Raytracing {
             foreach(LightSource Li in world.GetLightSources()) {
                 // shadow ray
                 Vector Sdir = (Li.position - intersectionPoint).Normalize();
-                Ray S = new Ray(Li.position, Sdir);
+                // Vector Sdir = (intersectionPoint - Li.position).Normalize();
+                Ray S = new Ray(intersectionPoint, Sdir);
                 // viewing direction
-                Vector V = (intersectionPoint - camera.center).Normalize();
+                Vector V = (intersectionPoint - Li.position).Normalize();
+                // Vector V = (intersectionPoint - camera.center).Normalize();
                 // reflected ray
                 Ray R = Ray.Reflect(S, normal, intersectionPoint);
     
