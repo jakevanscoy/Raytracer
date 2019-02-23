@@ -3,7 +3,6 @@ using System.IO;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.PixelFormats;
 using MathNet.Numerics;
 using MathNet.Numerics.LinearAlgebra;
@@ -12,6 +11,7 @@ using MathNet.Numerics.LinearAlgebra;
 namespace Raytracing {
     using Vector = Vector<float>;
     class Raytracer {
+        static readonly object _tlock = new object();
         public Camera camera {get; set;}
         public World world {get; set;}
         
@@ -84,11 +84,56 @@ namespace Raytracing {
                 }
             );
             if(fileName != "") {
-                // Console.WriteLine("Saving image to " + fileName);
                 image.Save(fileName);
             }
             return image;
         }
+
+        public void RenderGif(
+            string filename="out.gif", int frames = 24, float length = 1.0f,
+            int axis = 0, float start = 5.0f, float end = -5.0f) {
+            
+            var step = (start - end)/frames;
+            var frameArray = new Image<Rgba32>[frames];
+
+            char[] pstyles = new char[] {'|', '-', '\\', '|', '/', '-', '\\'};
+            string message = "Rendering " + frames + " " + world.width + "x" + world.height + " frames...";
+            var rpb = new ProgressBar(1, frames, 55, pstyles, message, "Frames");
+        
+            for(var f = 0; f < frames; f++) {
+                var frameWatch = System.Diagnostics.Stopwatch.StartNew();
+                world.lights[0].position[axis] = start - (step * f);
+                frameArray[f] = Render();
+                frameWatch.Stop();
+                var time = frameWatch.Elapsed;
+                var est = time.Multiply(frames - (f+1));
+                rpb.PrintProgressEstTime(f+1, est);
+            }
+
+            var epb = new ProgressBar(1, frames, 55, pstyles, "Encoding Gif...", "Frames");
+            try {
+                var fImg = frameArray[0];
+                var interval = (int)(((float)length / (float)frames) * 100);
+                for(var f = 1; f < frames; f++) {
+                    var frameWatch = System.Diagnostics.Stopwatch.StartNew();                    
+                    var cFrame = frameArray[f];
+                    cFrame.Frames[0].MetaData.FrameDelay = interval;
+                    fImg.Frames.AddFrame(cFrame.Frames[0]);
+                    frameWatch.Stop();
+                    var time = frameWatch.Elapsed;
+                    var est = time.Multiply(frames - (f+1));
+                    epb.PrintProgressEstTime(f+1, est);
+                }
+                var outputStream = File.Open(filename, FileMode.OpenOrCreate);
+                var gifEncoder = new SixLabors.ImageSharp.Formats.Gif.GifEncoder();
+                fImg.Save(outputStream, gifEncoder);
+                outputStream.Close();
+            } catch (Exception e) {
+                System.Console.WriteLine(e);
+            }
+           
+        }
+
     }
     class Program
     {
@@ -96,34 +141,16 @@ namespace Raytracing {
         { 
             Console.WriteLine("Initializing Raytracer...");   
            
-            int width  = 800, 
-                height = 800;
+            int width  = 200, 
+                height = 200;
             Raytracer raytracer = new Raytracer(width, height);
             Console.WriteLine("Rendering Images...");
-            var frames = 120;
             var watch = System.Diagnostics.Stopwatch.StartNew();
-
-            for(var i = 1; i <= frames; i++) {
-                raytracer.world.lights[0].position[0] -= 0.10f;
-                var image = raytracer.Render("out/img_"+i+".png");
-                System.Console.Write("Progress: ");
-                var normalProg = ((float)i / (float)frames) * 50;
-                System.Console.Write("frame: " + (i+1) + " / " + frames + " {");
-                for(int c = 0; c < normalProg; c++) {
-                    System.Console.Write("|");
-                }
-                for(int c = (int)normalProg; c < 50; c++) {
-                    System.Console.Write(" ");
-                }
-                System.Console.Write("}");  
-
-                System.Console.Write(String.Format(" {0:n}%", normalProg*2));              
-                System.Console.Write("\r");
-            }
+            raytracer.RenderGif(frames:120, axis:0, length:2.0f, start:5.0f, end: -5.0f);
             watch.Stop();
-            var time = watch.Elapsed.TotalSeconds;
+            var time = watch.Elapsed;
             Console.WriteLine("Done!"); 
-            Console.WriteLine(String.Format("Rendered in: {0:n}s", time));
+            Console.WriteLine("Rendered in: " + time.PrettyPrint());
         }
     }
 }
