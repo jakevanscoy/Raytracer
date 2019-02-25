@@ -8,3 +8,5 @@ Download available <a href="https://dotnet.microsoft.com/download/dotnet-core/3.
 Once dotnet core is set up, download the source files, including Raytracer.csproj and use the command "dotnet run" to execute the rendering process. 
 
 View my project blog <a href="https://throwingshade.surge.sh">Throwing Shade</a>!
+
+![Rendered GIF](./out.gif "Gif!")

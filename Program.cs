@@ -19,7 +19,7 @@ namespace Raytracing {
         public Raytracer(int width = 800, int height = 800) {
             // initialize default world and Object3Ds
             world = new World(width, height);
-            LightSource l1 = new LightSource(Vector.Build.DenseOfArray(new float[] {5.0f, -1.0f, -3.0f}));
+            LightSource l1 = new LightSource(Vector.Build.DenseOfArray(new float[] {0.0f, -1.0f, -3.0f}));
             world.AddLightSource(l1);
             // initialize camera
             Vector cameraCenter = Vector.Build.DenseOfArray(new float[] { -0.3f, -0.3f, -3.0f });
@@ -91,49 +91,43 @@ namespace Raytracing {
 
         public void RenderGif(
             string filename="out.gif", int frames = 24, float length = 1.0f,
-            int axis = 0, float start = 5.0f, float end = -5.0f) {
-            
+            int axis = 0, float start = 5.0f, float end = -5.0f) {    
+    
             var step = (start - end)/frames;
-            var frameArray = new Image<Rgba32>[frames];
-
-            char[] pstyles = new char[] {'|', '-', '\\', '|', '/', '-', '\\'};
+            // char[] pstyles = new char[] {'|', '-', '\\', '|', '/', '-', '\\'};
+            char[] pstyles = new char[] {'>', '|'};
             string message = "Rendering " + frames + " " + world.width + "x" + world.height + " frames...";
             var rpb = new ProgressBar(1, frames, 55, pstyles, message, "Frames");
-        
+            var frameWatch = System.Diagnostics.Stopwatch.StartNew();
+            var masterImage = Render();
+            frameWatch.Stop();
+            var time = frameWatch.Elapsed;
+            var est = time.Multiply(frames - 1);
+            rpb.PrintProgressEstTime(1, est);
+            var interval = (int)((length / (float)frames) * 100);
             for(var f = 0; f < frames; f++) {
-                var frameWatch = System.Diagnostics.Stopwatch.StartNew();
+                frameWatch = System.Diagnostics.Stopwatch.StartNew();
                 world.lights[0].position[axis] = start - (step * f);
-                frameArray[f] = Render();
+                var imageTmp = Render();
+                imageTmp.Frames[0].MetaData.FrameDelay = interval;
+                masterImage.Frames.AddFrame(imageTmp.Frames[0]);
                 frameWatch.Stop();
-                var time = frameWatch.Elapsed;
-                var est = time.Multiply(frames - (f+1));
+                time = frameWatch.Elapsed;
+                est = time.Multiply(frames - (f+1));
                 rpb.PrintProgressEstTime(f+1, est);
+                // System.Console.WriteLine(interval);
             }
 
-            var epb = new ProgressBar(1, frames, 55, pstyles, "Encoding Gif...", "Frames");
             try {
-                var fImg = frameArray[0];
-                var interval = (int)(((float)length / (float)frames) * 100);
-                for(var f = 1; f < frames; f++) {
-                    var frameWatch = System.Diagnostics.Stopwatch.StartNew();                    
-                    var cFrame = frameArray[f];
-                    cFrame.Frames[0].MetaData.FrameDelay = interval;
-                    fImg.Frames.AddFrame(cFrame.Frames[0]);
-                    frameWatch.Stop();
-                    var time = frameWatch.Elapsed;
-                    var est = time.Multiply(frames - (f+1));
-                    epb.PrintProgressEstTime(f+1, est);
-                }
                 var outputStream = File.Open(filename, FileMode.OpenOrCreate);
                 var gifEncoder = new SixLabors.ImageSharp.Formats.Gif.GifEncoder();
-                fImg.Save(outputStream, gifEncoder);
+                masterImage.Save(outputStream, gifEncoder);
                 outputStream.Close();
-            } catch (Exception e) {
+            } catch (IOException e) {
+                System.Console.WriteLine("Image saving failed.");
                 System.Console.WriteLine(e);
             }
-           
         }
-
     }
     class Program
     {
@@ -141,16 +135,17 @@ namespace Raytracing {
         { 
             Console.WriteLine("Initializing Raytracer...");   
            
-            int width  = 200, 
-                height = 200;
+            int width  = 600, 
+                height = 400;
             Raytracer raytracer = new Raytracer(width, height);
             Console.WriteLine("Rendering Images...");
             var watch = System.Diagnostics.Stopwatch.StartNew();
-            raytracer.RenderGif(frames:120, axis:0, length:2.0f, start:5.0f, end: -5.0f);
+            raytracer.RenderGif(frames:48, axis:1, length:2.0f, start:5.0f, end: -5.0f);
             watch.Stop();
             var time = watch.Elapsed;
             Console.WriteLine("Done!"); 
             Console.WriteLine("Rendered in: " + time.PrettyPrint());
+            // Window.Run();
         }
     }
 }

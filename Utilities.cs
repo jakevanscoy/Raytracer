@@ -147,7 +147,7 @@ namespace Raytracing {
             int days = (int)ts.TotalDays;
             int hours = (int)ts.TotalDays;
             int mins = (int)ts.TotalMinutes;
-            double secs = Math.Round(ts.TotalSeconds, 3);
+            double secs = Math.Round(ts.TotalSeconds - (mins * 60), 3);
             if(days > 0) result += days +" Days, ";
             if(hours > 0) result += hours +" Hours, ";
             if(mins > 0) result += mins +" Minutes, ";
