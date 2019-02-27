@@ -8,8 +8,6 @@ using MathNet.Numerics.LinearAlgebra;
 namespace Raytracing {
 
     using Vector = Vector<float>;
-
-   
     /// The base class for all of our 3D Objects
     public abstract class Object3D {
         public int objID {get; set;}
@@ -17,11 +15,20 @@ namespace Raytracing {
         public Material material {get; set;}
     }
 
-    // Triangles are defined using 3 vertices
+    // Triangles are defined using 3 vertices: 
+    //            v0
+    //            /\
+    //   edge01  /  \   edge02
+    //          /    \
+    //         /      \
+    //        v1------v2
+    //          edge12
+    //
     public class Triangle : Object3D {
         public Vector vertex0 {get; set;}
         public Vector vertex1 {get; set;}
         public Vector vertex2 {get; set;}
+        public Vector normal {get; private set;}
         private const float kEpsilon = 0.0000001f; // constant used in intersection method
 
         public Triangle(Vector v0, Vector v1, Vector v2, Material m) {
@@ -29,7 +36,19 @@ namespace Raytracing {
             vertex1 = v1;
             vertex2 = v2;
             material = m;
+            normal = CalcNormal();
         }
+
+        public Vector CalcNormal() {
+            var edge01 = vertex1 - vertex0;
+            var edge02 = vertex2 - vertex0;
+            var N = Vector.Build.Dense(3);
+            N[0] = (edge01[1] * edge02[2]) - (edge01[2] * edge02[1]);
+            N[1] = (edge01[2] * edge02[0]) - (edge01[0] * edge02[2]);
+            N[2] = (edge01[0] * edge02[1]) - (edge01[1] * edge02[0]);
+            return N.Normalize();
+        }
+
         public override bool Intersect(Ray ray, out Vector[] intersection, out Vector[] normal) {
             // determinant, inverse determinant
             float det, idet;
@@ -45,6 +64,7 @@ namespace Raytracing {
             };
             edge01 = vertex1 - vertex0;
             edge02 = vertex2 - vertex0;
+            normal[0] = this.normal;
             pvec = ray.direction.CrossProduct(edge02);
             det = edge01.DotProduct(pvec);
             // no intersection if determinant is very small (or 0)
@@ -137,16 +157,11 @@ namespace Raytracing {
                 intersection[0] = intersection0[0];
                 normal[0] = normal0[0];
             }
-            if(i0 && i1) {
-                intersection[1] = intersection1[0];
-                normal[1] = normal1[0];
-            }
-            if(!i0 && i1) {
+            if(i1) {
                 intersection[0] = intersection1[0];
                 normal[0] = normal1[0];
             }
-            normal[0] = this.normal;
-
+            // normal[0] = this.normal;
             return (i0 || i1);
         }
     }
@@ -169,23 +184,31 @@ namespace Raytracing {
         public override bool Intersect(Ray ray, out Vector[] intersection, out Vector[] normal) {
             intersection = new Vector[]{
                 Vector.Build.Dense(3), // i0
-                Vector.Build.Dense(3), // i1
+                // Vector.Build.Dense(3), // i1
             };
             normal = new Vector[]{
                 Vector.Build.Dense(3), // n0
-                Vector.Build.Dense(3), // n1
+                // Vector.Build.Dense(3), // n1
             };
+
             var ray_to_center = center - ray.origin;
             float tca = ray_to_center.DotProduct(ray.direction);
             // System.Console.WriteLine(tca);            
-            if(tca < 0) return false; // sphere is behind camera
+            // if(tca < 0.0f) return false; // sphere is behind camera
             
-            float d2 = ray_to_center.DotProduct(ray_to_center) - tca * tca;
+            float d2 = ray_to_center.DotProduct(ray_to_center) - (tca * tca);
+            // float d2 = ray_to_center.DotProduct(ray_to_center) - tca * tca;
             if(d2 > (radius2)) return false; // NO INTERSECTION
-            float thc = (float)System.Math.Sqrt((radius2) - d2);
-            
-            float t0 = tca - thc;
-            float t1 = tca + thc;
+            float t1c = (float)Math.Sqrt(radius2 - d2);
+            float t0 = tca - t1c;
+            float t1 = tca + t1c;
+
+            var center_to_ray = ray.origin - center;
+            float a = ray.direction.DotProduct(ray.direction);
+            float b = ray.direction.DotProduct(2.0f * center_to_ray);
+            float c = center_to_ray.DotProduct(center_to_ray) - (radius2);
+            if(!Extensions.Quadratic(a, b, c, ref t0, ref t1)) 
+                return false;
 
             if (t0 > t1) {
                 // swap
@@ -194,26 +217,14 @@ namespace Raytracing {
                 t1 = tmp;
             }
 
-            var center_to_ray = ray.origin - center;
-            float a = ray.direction.DotProduct(ray.direction);
-            float b = 2 * ray.direction.DotProduct(center_to_ray);
-            float c = center_to_ray.DotProduct(center_to_ray) - (radius2);
-
-            if(Extensions.SolveQuadratic(a, b, c).Count == 0) return false;
-
             if (t0 < 0) {
                 t0 = t1; // if t0 is negative, let's use t1 instead
                 if (t0 < 0) return false; // both t0 and t1 are negative
             }
 
-            intersection[0] = (ray.origin + ray.direction * t0);
-            intersection[1] = (ray.origin + ray.direction * t1);
-
+            intersection[0] = (ray.origin + (ray.direction * t0));
             Vector i0tmp = intersection[0] - center;
-            Vector i1tmp = intersection[1] - center;
             normal[0] = i0tmp.Normalize();
-            normal[1] = i1tmp.Normalize();
-            
             return true;
         }
     }

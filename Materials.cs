@@ -63,7 +63,7 @@ namespace Raytracing {
         }
        
         public override Rgba32 Intersect(Ray ray, Vector intersection, Vector normal) {
-            var color = lightingModel.Illuminate(intersection, normal, this);
+            var color = lightingModel.Illuminate(ray, intersection, normal.Normalize(), this);
             // System.Console.WriteLine(color);
             return color;
         }
