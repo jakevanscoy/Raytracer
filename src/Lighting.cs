@@ -92,8 +92,8 @@ namespace Raytracing {
             // viewing direction
             Vector V = -ray.direction.Normalize();
             // local normal
-            Vector lNormal = (V.DotProduct(normal) < 0.0f)? normal : -normal;
-            Vector lIntersection = intersectionPoint - (lNormal * 0.0001f);
+            Vector lNormal = (V.DotProduct(normal) < 0.0f)? normal : normal;
+            Vector lIntersection = intersectionPoint + (lNormal * 0.0001f);
 
             foreach(LightSource Li in world.GetLightSources()) {
                 // shadow ray
@@ -121,7 +121,6 @@ namespace Raytracing {
                     Ls += (RdotV * LiOs);
                 }
             }
-            
             Ld *= material.kDiffuse;
             Ls *= material.kSpecular;
             L += Ld;
