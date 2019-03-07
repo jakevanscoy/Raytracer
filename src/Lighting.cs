@@ -30,20 +30,11 @@ namespace Raytracing {
             origin = O;
             direction = D;
         }
-    
-        // Perfect reflection:
-        // R = S + 2a
-        // R: reflected ray
-        // S: ray from intersection point (I) -> source 
-        // a: -(S . N) / len(N)^2
-        // N: normal vector of an object at intersection point I
-        public static Ray Reflect(Ray S, Vector N, Vector I) {
-            Vector rayO = (I + N * 0.00001f);
-            // Vector rayD = 2 * (N.DotProduct(S.direction) * (N - S.direction)).Normalize();
-            Vector rayD = ((2 * S.direction.DotProduct(N) * N) - S.direction).Normalize();
-            Ray R = new Ray(rayO, rayD);
-            return R;
+
+        public Ray Reverse() {
+            return new Ray(this.origin, -this.direction);
         }
+    
     }
 
 
@@ -73,13 +64,15 @@ namespace Raytracing {
         // Ri - angle of reflectance of light i
         // V  - viewing angle 
         //////
-        public Rgba32 Illuminate(Ray ray, Vector intersectionPoint, Vector normal, PhongMaterial material) {
+        public Rgba32 Illuminate(Ray ray, Vector intersectionPoint, Vector normal, PhongMaterial material, Shape3D obj) {
             // initialize Light (zeros)
             Vector L = Vector.Build.Dense(3);
             // add ambient lighting             
             Vector La = world.ambientLight.ToVector();
             float ka = world.ambientCoefficient;
             L += (La * ka);
+
+
 
             // add up diffuse/specular lighting for each light
             Vector Ld = Vector.Build.Dense(3);
@@ -91,23 +84,22 @@ namespace Raytracing {
 
             // viewing direction
             Vector V = -ray.direction.Normalize();
-            // local normal
-            Vector lNormal = (V.DotProduct(normal) < 0.0f)? normal : normal;
-            Vector lIntersection = intersectionPoint + (lNormal * 0.0001f);
-
+            // shift intersection to avoid self-collision
+            Vector lIntersection = intersectionPoint + (normal * 0.0001f);
             foreach(LightSource Li in world.GetLightSources()) {
                 // shadow ray
                 Vector Sdir = (Li.position - lIntersection).Normalize();
                 Ray S = new Ray(lIntersection, Sdir);
                 // reflected ray
-                Vector Rdir = Extensions.Reflected(Sdir, lNormal).Normalize();
+                Vector Rdir = Extensions.Reflected(Sdir, normal).Normalize();
                 Ray R = new Ray(lIntersection, Rdir);
                 // check for shadow ray -> other object intersection
                 bool shaded = false;
-                foreach(Object3D obj in world.objects) {
-                    if(obj.Intersect(S, out var I, out var N)) {
-                        shaded = true;
-                    }
+                foreach(Shape3D o_obj in world.objects) {
+                    if(!o_obj.Equals(obj))
+                        if(o_obj.Intersect(S, out var I, out var N)) 
+                            shaded = true;
+                    
                 }
 
                 if(!shaded) {
@@ -117,7 +109,7 @@ namespace Raytracing {
                     Ld += (SdotN * LiOd);
                     // specular
                     Vector LiOs = Li.color.ToVector().Multiply(Os).Clamp(0.0f, 1.0f);
-                    float RdotV = ((float)Math.Pow(V.DotProduct(Rdir), material.specularExponent)).Clamp(0.0f, 1.0f);
+                    float RdotV = ((float)Math.Pow(Rdir.DotProduct(V), material.specularExponent)).Clamp(0.0f, 1.0f);
                     Ls += (RdotV * LiOs);
                 }
             }

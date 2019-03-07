@@ -12,7 +12,7 @@ namespace Raytracing {
     using Vector = Vector<float>;
 
     public abstract class Material {
-        public abstract Rgba32 Intersect(Ray ray, Vector intersection, Vector normal);
+        public abstract Rgba32 Intersect(Ray ray, Vector intersection, Vector normal, Shape3D obj);
     }
 
     public class BasicMaterial : Material {
@@ -24,14 +24,14 @@ namespace Raytracing {
         public BasicMaterial(Rgba32 c) {
             color = c;
         }
-        public override Rgba32 Intersect(Ray ray, Vector intersection, Vector normal) {
+        public override Rgba32 Intersect(Ray ray, Vector intersection, Vector normal, Shape3D obj) {
             return this.color;
         }
     }
 
     public class PhongMaterial : Material {
         public PhongIlluminationModel lightingModel { get; private set; }
-        
+
         // material color variables 
         public Rgba32 diffuseColor  { get; private set; }
         public Rgba32 specularColor { get; private set; }
@@ -40,6 +40,9 @@ namespace Raytracing {
         public float kDiffuse  { get; private set; }
         public float kSpecular { get; private set; }
         public float specularExponent { get; private set; }
+
+        // object instance
+        public Shape3D objectInstance;
 
         // color - array of 3 Rgb32 objects that set diffuse and specular color variables
         // coefficients - array of 3 float values that set diffuse and specular coefficients
@@ -62,8 +65,8 @@ namespace Raytracing {
             specularExponent = 1.0f;            
         }
        
-        public override Rgba32 Intersect(Ray ray, Vector intersection, Vector normal) {
-            var color = lightingModel.Illuminate(ray, intersection, normal.Normalize(), this);
+        public override Rgba32 Intersect(Ray ray, Vector intersection, Vector normal, Shape3D obj) {
+            var color = lightingModel.Illuminate(ray, intersection, normal.Normalize(), this, obj);
             // System.Console.WriteLine(color);
             return color;
         }

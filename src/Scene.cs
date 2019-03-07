@@ -7,9 +7,11 @@ using MathNet.Numerics.LinearAlgebra;
 
 
 namespace Raytracing {
+    
     using Vector = Vector<float>;
+
     public class World {
-        public List<Object3D> objects { get; private set; }
+        public List<Shape3D> objects { get; private set; }
         public List<LightSource> lights { get; set; }
         public int width { get; private set; }
         public int height { get; private set; }
@@ -22,7 +24,7 @@ namespace Raytracing {
             width = w;
             height = h;
             up = Vector.Build.DenseOfArray(new float[]{0.0f, 1.0f, 0.0f});
-            objects = new List<Object3D>();
+            objects = new List<Shape3D>();
             ambientLight = new Rgba32(1.0f, 1.0f, 1.0f);
             ambientCoefficient = 0.0f;
             background = new Rgba32(0.5f, 0.6f, 1.0f, 1.0f);
@@ -33,7 +35,7 @@ namespace Raytracing {
             width = w;
             height = h;
             up = Vector.Build.DenseOfArray(new float[]{0.0f, 1.0f, 0.0f});
-            objects = new List<Object3D>();
+            objects = new List<Shape3D>();
             ambientLight = new Rgba32(1.0f, 1.0f, 1.0f);
             ambientCoefficient = 1.0f;
             background = bg_color;
@@ -44,7 +46,11 @@ namespace Raytracing {
             return lights;
         }
 
-        public void AddObject(Object3D o) {
+        public List<Shape3D> GetObjects() {
+            return objects;
+        }
+
+        public void AddObject(Shape3D o) {
             o.objID = objects.Count;
             objects.Add(o);
         }
@@ -55,17 +61,19 @@ namespace Raytracing {
 
         public bool SpawnRay(Ray ray, out Rgba32 color) {
             bool hit = false;
-            float? closestZ = null;
+            float? closestD = null;
             color = background;
-            foreach(Object3D obj in objects) {
+            foreach(Shape3D obj in objects) {
                 if(obj.Intersect(ray, out var intersect, out var normal)) {
-                    if(closestZ == null || intersect[0][2] < closestZ) {
-                        color = obj.material.Intersect(ray, intersect[0], normal[0]);
-                        closestZ = intersect[0][2];
+                    float dist = Math.Abs((ray.origin - intersect[0]).Length());
+                    if(closestD == null || dist < closestD) {
+                        color = obj.material.Intersect(ray, intersect[0], normal[0], obj);
+                        closestD = dist;
                     }
                     hit = true;
                 }
             }
+
             return hit;
         }
     }

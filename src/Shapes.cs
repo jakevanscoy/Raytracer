@@ -9,7 +9,7 @@ namespace Raytracing {
 
     using Vector = Vector<float>;
     /// The base class for all of our 3D Objects
-    public abstract class Object3D {
+    public abstract class Shape3D {
         public int objID {get; set;}
         public abstract bool Intersect(Ray ray, out Vector[] intersection, out Vector[] normal);
         public Material material {get; set;}
@@ -24,7 +24,7 @@ namespace Raytracing {
     //        v1------v2
     //          edge12
     //
-    public class Triangle : Object3D {
+    public class Triangle : Shape3D {
         public Vector vertex0 {get; set;}
         public Vector vertex1 {get; set;}
         public Vector vertex2 {get; set;}
@@ -42,6 +42,8 @@ namespace Raytracing {
         public Vector CalcNormal() {
             var edge01 = vertex1 - vertex0;
             var edge02 = vertex2 - vertex0;
+            // var norm = (edge01).CrossProduct(edge02); 
+            // return norm.Normalize();
             var N = Vector.Build.Dense(3);
             N[0] = (edge01[1] * edge02[2]) - (edge01[2] * edge02[1]);
             N[1] = (edge01[2] * edge02[0]) - (edge01[0] * edge02[2]);
@@ -65,6 +67,7 @@ namespace Raytracing {
             edge01 = vertex1 - vertex0;
             edge02 = vertex2 - vertex0;
             normal[0] = this.normal;
+
             pvec = ray.direction.CrossProduct(edge02);
             det = edge01.DotProduct(pvec);
             // no intersection if determinant is very small (or 0)
@@ -94,79 +97,9 @@ namespace Raytracing {
         }
     }
 
-    public class Plane : Object3D {
-        public Vector center {get; set;}
-        public Vector normal {get; set;}
-        public Triangle t0 {get;}
-        public Triangle t1 {get;}
 
-        /*      
-            Plane constructor given:
-                a center point/vector, a normal vector, 
-                width (in world units), height (in world units),
-                and material
-            
 
-            planes are made of two constituent triangles t0 and t1,
-            this makes intersection logic easy.
-
-                p0________p1
-            ^    |        /| 
-            |    | t0   /  |
-            |    |    c  --------> n
-            |    |  /   t1 |
-            |    |/________|   
-           (V)   p2        p3
-                
-                (H)---------->
-
-            to find p0-3, we need to find the horizontal and vertical 
-            "projection vectors" (H, V) of the plane. 
-            Using those, we can calculate p0-3 w.r.t. the center 
-         */         
-        public Plane(Vector center, Vector normal, float width, float height,  Material material) {
-            this.center = center;
-            this.normal = Extensions.Normalize(normal);
-            this.material = material;
-
-            // default world "up" vector
-            Vector up = Vector.Build.DenseOfArray(new float[] {0.0f, 0.0f, -1.0f});
-            // normal x up = 'horizontal' vector H of the plane
-            Vector H = normal.CrossProduct(up);
-            // normal x H = 'vertical' vector V of the plane
-            Vector V = normal.CrossProduct(H);
-
-            // calculate corner points based on the center, width, height, H, and V
-            Vector p0 = center + ((width / 2) * H) + ((height / 2) * V);
-            Vector p1 = center + ((width / 2) * H) - ((height / 2) * V);
-            Vector p2 = center - ((width / 2) * H) + ((height / 2) * V);
-            Vector p3 = center - ((width / 2) * H) - ((height / 2) * V);
-        
-            t0 = new Triangle(p0, p2, p1, material);
-            t1 = new Triangle(p3, p1, p2, material);
-        }
-
-        public override bool Intersect(Ray ray, out Vector[] intersection, out Vector[] normal) {
-            // check if the ray intersects either of our constituent triangles
-            bool i0 = t0.Intersect(ray, out var intersection0, out var normal0);
-            bool i1 = t1.Intersect(ray, out var intersection1, out var normal1);
-            
-            intersection = new Vector[2];
-            normal = new Vector[2];
-            if(i0) {
-                intersection[0] = intersection0[0];
-                normal[0] = normal0[0];
-            }
-            if(i1) {
-                intersection[0] = intersection1[0];
-                normal[0] = normal1[0];
-            }
-            // normal[0] = this.normal;
-            return (i0 || i1);
-        }
-    }
-
-    public class Sphere : Object3D {
+    public class Sphere : Shape3D {
         public Vector center {get; private set;}
         public float radius {get; private set;}        
         public float radius2 {get; private set;}
@@ -226,6 +159,101 @@ namespace Raytracing {
             Vector i0tmp = intersection[0] - center;
             normal[0] = i0tmp.Normalize();
             return true;
+        }
+    }
+
+        public class Plane : Shape3D {
+        public Vector center {get; set;}
+        public Vector normal {get; set;}
+
+        private Vector min_bounds;
+        private Vector max_bounds;
+        public Vector p0 {get; set;}
+        public Vector p1 {get; set;}
+        public Vector p2 {get; set;}
+        public Vector p3 {get; set;}
+
+        /*      
+            Plane constructor given:
+                a center point/vector, a normal vector, 
+                width (in world units), height (in world units),
+                and material
+            
+                p0_________p1
+            ^    |         | 
+            |    |         |
+            |    |    c  --------> n
+            |    |         |
+            |    |_________|   
+           (V)   p2        p3
+                
+                (H)---------->
+
+            to find p0-3, we need to find the horizontal and vertical 
+            "projection vectors" (H, V) of the plane. 
+            Using those, we can calculate p0-3 w.r.t. the center 
+         */                 
+        public Plane(Vector center, Vector normal, float width, float height,  Material material) {
+            this.center = center;
+            this.normal = normal.Normalize();
+            this.material = material;
+            if(normal[1] == 0.0f) {
+                normal[1] = 0.000001f;
+            }
+            // default world "up" vector
+            Vector up = Vector.Build.DenseOfArray(new float[] { 0.0f, 0.0f, 1.0f});
+            // normal x up = 'horizontal' vector H of the plane
+            Vector H = up.CrossProduct(normal).Normalize();
+            // normal x H = 'vertical' vector V of the plane
+            Vector V = normal.CrossProduct(H).Normalize();
+
+            float max_x = float.MinValue, min_x = float.MaxValue;
+            float max_y = float.MinValue, min_y = float.MaxValue;
+            float max_z = float.MinValue, min_z = float.MaxValue;
+            min_bounds = Vector.Build.DenseOfArray(new float[]{min_x, min_y, min_z});
+            max_bounds = Vector.Build.DenseOfArray(new float[]{max_x, max_y, max_z});
+            
+            // calculate corner points based on the center, width, height, H, and V
+            p0 = center + ((width / 2) * H) + ((height / 2) * V);
+            p1 = center + ((width / 2) * H) - ((height / 2) * V);
+            p2 = center - ((width / 2) * H) + ((height / 2) * V);
+            p3 = center - ((width / 2) * H) - ((height / 2) * V);
+            MakeBounds(p0);
+            MakeBounds(p1);
+            MakeBounds(p2);
+            MakeBounds(p3);
+        }
+
+        private void MakeBounds(Vector p) {
+            if(p[0] < min_bounds[0]) min_bounds[0] = p[0];
+            if(p[1] < min_bounds[1]) min_bounds[1] = p[1];
+            if(p[2] < min_bounds[2]) min_bounds[2] = p[2];
+            
+            if(p[0] > max_bounds[0]) max_bounds[0] = p[0];
+            if(p[1] > max_bounds[1]) max_bounds[1] = p[1];
+            if(p[2] > max_bounds[2]) max_bounds[2] = p[2];
+        }
+
+        private bool InBounds(Vector intersect) { 
+            var i_min_epsilon = intersect + (0.0001f);
+            var i_max_epsilon = intersect - (0.0001f);
+            bool in_x = (i_min_epsilon[0] >= min_bounds[0]) && (i_max_epsilon[0] <= max_bounds[0]);
+            bool in_y = (i_min_epsilon[1] >= min_bounds[1]) && (i_max_epsilon[1] <= max_bounds[1]);
+            bool in_z = (i_min_epsilon[2] >= min_bounds[2]) && (i_max_epsilon[2] <= max_bounds[2]);
+            return (in_x && in_y && in_z);
+        }
+
+        public override bool Intersect(Ray ray, out Vector[] intersection, out Vector[] normal) {
+            intersection = new Vector[1];
+            normal = new Vector[] { this.normal };
+            float denom = this.normal.DotProduct(ray.direction.Normalize());
+            if((float)Math.Abs(denom) > 0.000001f) {
+                Vector rayO_center = center - ray.origin;
+                float d = rayO_center.DotProduct(this.normal) / denom;
+                intersection[0] = ray.origin + (ray.direction.Normalize() * d);
+                return (d >= 0.0f && InBounds(intersection[0]));
+            }
+            return false;
         }
     }
 }

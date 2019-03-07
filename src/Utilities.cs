@@ -75,6 +75,7 @@ namespace Raytracing {
             System.Console.WriteLine();
         }
     }
+    
     public static class Extensions {   
         public static Vector CrossProduct(this Vector left, Vector right) {
             if(left.Count != 3 || right.Count != 3) {
