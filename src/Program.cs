@@ -37,7 +37,7 @@ namespace Raytracing {
             Console.WriteLine("Rendering Images...");
             var watch = System.Diagnostics.Stopwatch.StartNew();
             if(frames > 1) {
-                raytracer.RenderGif(filename:fname, frames:frames, axis:0, length:1.0f, start: -7.75f, end: 7.75f);
+                raytracer.RenderAnimation(filename:fname, frames:frames, length:1.0f);
             } else {
                 raytracer.Render(fname+".png");
             }

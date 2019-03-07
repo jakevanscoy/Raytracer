@@ -100,7 +100,7 @@ namespace Raytracing {
 
 
     public class Sphere : Shape3D {
-        public Vector center {get; private set;}
+        public Vector center {get; set;}
         public float radius {get; private set;}        
         public float radius2 {get; private set;}
         public Sphere(Vector center, float radius, Material material) {

@@ -22,7 +22,7 @@ namespace Raytracing {
             LightSource l1 = new LightSource(Vector.Build.DenseOfArray(new float[] { 0.0f, -5.0f, -5.0f}));
             world.AddLightSource(l1);
             // initialize camera
-            Vector cameraPos    = Vector.Build.DenseOfArray(new float[] { -0.3f, -0.3f, -10.0f });
+            Vector cameraPos    = Vector.Build.DenseOfArray(new float[] { -0.3f, -0.3f, -3.0f });
             Vector cameraUp     = Vector.Build.DenseOfArray(new float[] {  0.0f, -1.0f,  0.0f  });
             Vector cameraLookAt = Vector.Build.DenseOfArray(new float[] {  0.0f,  0.0f,  0.0f  });
             this.camera = new Camera(cameraPos, cameraLookAt, cameraUp, world);
@@ -32,17 +32,17 @@ namespace Raytracing {
             // sphere 0
             Vector s0Center = Vector.Build.DenseOfArray(new float[] { -0.33f,  -0.2f,  -1.75f });
             float s0Radius = 0.15f;
-            Rgba32[] s0colors = new Rgba32[] { Rgba32.Orange, Rgba32.White };
+            Rgba32[] s0colors = new Rgba32[] { Rgba32.Blue, Rgba32.Red };
             float[] s0coefficients = new float[] { 1.0f, 0.5f };
             PhongMaterial s0PhongMaterial = new PhongMaterial(illuminationModel, s0colors, s0coefficients, 5.0f);
             Sphere sphere0 = new Sphere(s0Center, s0Radius, s0PhongMaterial);
             
             // sphere 1
-            Vector s1Center = Vector.Build.DenseOfArray(new float[] { 0.1f,  -0.01f,  -1.0f });            
+            Vector s1Center = Vector.Build.DenseOfArray(new float[] { -0.1f,  -0.05f,  -1.0f });            
             float s1Radius = 0.15f;
-            Rgba32[] s1colors = new Rgba32[] { Rgba32.Red, Rgba32.White };
+            Rgba32[] s1colors = new Rgba32[] { Rgba32.Red, Rgba32.Blue };
             float[] s1coefficients = new float[] { 1.0f, 1.0f };
-            PhongMaterial s1PhongMaterial = new PhongMaterial(illuminationModel, s1colors, s1coefficients, 5.0f);
+            PhongMaterial s1PhongMaterial = new PhongMaterial(illuminationModel, s1colors, s1coefficients, 1.0f);
             Sphere sphere1 = new Sphere(s1Center, s1Radius, s1PhongMaterial);
 
             // plane0 (floor)
@@ -56,10 +56,10 @@ namespace Raytracing {
             // plane1 (background)
             Vector p1Center = Vector.Build.DenseOfArray(new float[] { 0.0f,  0.0f, 5.0f });
             Vector p1Normal = Vector.Build.DenseOfArray(new float[] { 0.0f,  0.0f, -1.0f });
-            Rgba32[] p1colors = new Rgba32[] { Rgba32.Blue, Rgba32.Red };
+            Rgba32[] p1colors = new Rgba32[] { Rgba32.Purple, Rgba32.White };
             float[] p1coefficients = new float[] { 1.0f, 1.0f };
             PhongMaterial p1PhongMaterial = new PhongMaterial(illuminationModel, p1colors, p1coefficients, 0.001f);
-            Plane plane1 = new Plane(p1Center, p1Normal, 0.5f, 0.5f, p0PhongMaterial);
+            Plane plane1 = new Plane(p1Center, p1Normal, 5.0f, 5.0f, p0PhongMaterial);
             
             world.AddObject(sphere0);
             world.AddObject(sphere1);
@@ -95,6 +95,48 @@ namespace Raytracing {
             return image;
         }
 
+        public void RenderAnimation(string filename="out", int frames = 24, float length = 1.0f) {
+            // init progress bar
+            char[] pstyles = new char[] {'>', '|'};
+            string message = "Rendering " + frames + " " + world.width + "x" + world.height + " frames...";
+            var rpb = new ProgressBar(1, frames, 55, pstyles, message, "Frame");
+
+            // Render master image and keep track of time for render ETA
+            LightSource l1 = world.lights[0];
+            Sphere s0 = (Sphere)world.objects[0];
+           
+
+            // set up frame and animation step intervals
+            var interval = (int)((length / (float)frames) * 100);
+            Vector s = Vector.Build.DenseOfVector(s0.center);
+            Vector tr = Vector.Build.DenseOfArray(new float[] {0.01f, 0.05f, 0.01f});
+
+            var frameWatch = System.Diagnostics.Stopwatch.StartNew();
+            var masterImage = Render();
+            frameWatch.Stop();
+            var time = frameWatch.Elapsed;
+            var est = time.Multiply(frames - 1);
+            rpb.PrintProgressEstTime(1, est);
+            float ascale = frames/length;
+            for(var f = 1; f <= frames; f++) {
+                frameWatch = System.Diagnostics.Stopwatch.StartNew();
+                var imageTmp = Render();
+                imageTmp.Frames[0].MetaData.FrameDelay = interval;
+                s0.center = Animator.AnimateVector(s, tr, ascale, Animator.add);
+                // add current image frame to master image frames
+                masterImage.Frames.AddFrame(imageTmp.Frames[0]);
+                frameWatch.Stop();
+                time = frameWatch.Elapsed;
+                est = time.Multiply(frames - (f));
+                rpb.PrintProgressEstTime(f, est);
+            }
+            bool saved = false;
+            int attempts = 0;
+            while(!saved) {
+                saved = SaveGif(masterImage, filename, attempts++);
+            }
+        }
+
         public void RenderGif(string filename="out", int frames = 24, float length = 1.0f,
             int axis = 0, float start = 5.0f, float end = -5.0f) {
             // init progress bar
@@ -104,9 +146,9 @@ namespace Raytracing {
 
             // Render master image and keep track of time for render ETA
             LightSource l1 = world.lights[0];
+            Sphere s0 = (Sphere)world.objects[0];
             l1.position[axis] = start;
             var frameWatch = System.Diagnostics.Stopwatch.StartNew();
-            var masterImage = Render();
             frameWatch.Stop();
             var time = frameWatch.Elapsed;
             var est = time.Multiply(frames - 1);
@@ -115,9 +157,11 @@ namespace Raytracing {
             // set up frame and animation step intervals
             var step = (start - end)/(float)frames;
             var interval = (int)((length / (float)frames) * 100);
+            s0.center[axis] = start;
+            var masterImage = Render();
             for(var f = 1; f <= frames; f++) {
                 frameWatch = System.Diagnostics.Stopwatch.StartNew();
-                l1.position[axis] = start - (step * f);
+                s0.center[axis] = start - (step * f);
                 var imageTmp = Render();
                 imageTmp.Frames[0].MetaData.FrameDelay = interval;
                 // add current image frame to master image frames
