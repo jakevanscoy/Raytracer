@@ -11,6 +11,7 @@ namespace Raytracing {
     using Vector = Vector<float>;
 
     public class World {
+        public List<Camera> cameras { get; private set; }
         public List<Shape3D> objects { get; private set; }
         public List<LightSource> lights { get; set; }
         public int width { get; private set; }
@@ -29,6 +30,7 @@ namespace Raytracing {
             ambientCoefficient = 0.0f;
             background = new Rgba32(0.5f, 0.6f, 1.0f, 1.0f);
             lights = new List<LightSource>();
+            cameras = new List<Camera>();
         }
 
         public World(int w, int h, Rgba32 bg_color) {
@@ -79,9 +81,9 @@ namespace Raytracing {
     }
     
     public class Camera {
-        public Vector position {get; private set;}
-        public Vector lookAt {get; private set;}
-        public Vector up {get; private set;}
+        public Vector position {get; set;}
+        public Vector lookAt {get; set;}
+        public Vector up {get; set;}
         public World world {get; private set;}
 
         // transforms world coordinates to camera coordinates

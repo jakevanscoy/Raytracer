@@ -14,6 +14,7 @@ namespace Raytracing {
         { 
             Console.WriteLine("Initializing Raytracer...");
             int width  = 1200, height = 800, frames = 24;
+            float length = 1.0f;
             string fname = "out";
             if(args.Length > 1) {
                 try {
@@ -25,19 +26,23 @@ namespace Raytracing {
                     if(args.Length > 3) {
                         fname = args[3];
                     }
+                    if(args.Length > 4) {
+                        length = float.Parse(args[4]);
+                    }
                 } catch {
-                    width = 1200;
-                    height = 800;
+                    width = 600;
+                    height = 400;
+                    length = 1.0f;
+                    frames = 24;
                     System.Console.WriteLine("Error parsing command line args");
                     System.Console.WriteLine("correct format 'dotnet run [<width> <height> [<frames>] [<output file name>]]'");
                     System.Console.WriteLine("...continuing using default width/height...");
                 }
             }
             Raytracer raytracer = new Raytracer(width, height);
-            Console.WriteLine("Rendering Images...");
             var watch = System.Diagnostics.Stopwatch.StartNew();
             if(frames > 1) {
-                raytracer.RenderAnimation(filename:fname, frames:frames, length:1.0f);
+                raytracer.RenderAnimation(filename:fname, frames:frames, length:length);
             } else {
                 raytracer.Render(fname+".png");
             }

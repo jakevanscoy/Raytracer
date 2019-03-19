@@ -10,9 +10,13 @@ namespace Raytracing {
     using Vector = Vector<float>;
     /// The base class for all of our 3D Objects
     public abstract class Shape3D {
+        public Material material {get; set;}
         public int objID {get; set;}
         public abstract bool Intersect(Ray ray, out Vector[] intersection, out Vector[] normal);
-        public Material material {get; set;}
+        public virtual Vector GetTextureCoords(Vector intersection) {
+            return Vector.Build.Dense(2);
+        }
+
     }
 
     // Triangles are defined using 3 vertices: 
@@ -109,6 +113,13 @@ namespace Raytracing {
             this.radius2 = radius * radius;
             this.material = material;
             // System.Console.WriteLine(this.material.color);
+        }
+
+        public override Vector GetTextureCoords(Vector intersection) {
+            Vector d = (center - intersection).Normalize();
+            float u = 0.5f + (float)(Math.Atan2(d[2], d[0]) / (2*Math.PI));
+            float v = 0.5f - (float)(Math.Asin(d[1]) / (Math.PI));
+            return Vector.Build.DenseOfArray(new float[]{u, v});
         }
 
         /// Intersect (overrides base class)
@@ -243,11 +254,18 @@ namespace Raytracing {
             return (in_x && in_y && in_z);
         }
 
+        public override Vector GetTextureCoords(Vector intersection) {
+            Vector nI = 2 * (intersection - min_bounds)/(max_bounds - min_bounds) - 1;
+            float u = (nI[2] + 1) / 2;
+            float v = (nI[0] + 1) / 2;
+            return Vector.Build.DenseOfArray(new float[] {u, v});
+        }
+
         public override bool Intersect(Ray ray, out Vector[] intersection, out Vector[] normal) {
             intersection = new Vector[1];
             normal = new Vector[] { this.normal };
             float denom = this.normal.DotProduct(ray.direction.Normalize());
-            if((float)Math.Abs(denom) > 0.000001f) {
+            if((float)Math.Abs(denom) > 0.00001f) {
                 Vector rayO_center = center - ray.origin;
                 float d = rayO_center.DotProduct(this.normal) / denom;
                 intersection[0] = ray.origin + (ray.direction.Normalize() * d);

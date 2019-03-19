@@ -39,10 +39,9 @@ namespace Raytracing {
         // color coefficients
         public float kDiffuse  { get; private set; }
         public float kSpecular { get; private set; }
+        
+        // specular highlight exponent
         public float specularExponent { get; private set; }
-
-        // object instance
-        public Shape3D objectInstance;
 
         // color - array of 3 Rgb32 objects that set diffuse and specular color variables
         // coefficients - array of 3 float values that set diffuse and specular coefficients
@@ -66,9 +65,32 @@ namespace Raytracing {
         }
        
         public override Rgba32 Intersect(Ray ray, Vector intersection, Vector normal, Shape3D obj) {
-            var color = lightingModel.Illuminate(ray, intersection, normal.Normalize(), this, obj);
-            // System.Console.WriteLine(color);
-            return color;
+            return lightingModel.Illuminate(ray, intersection, normal.Normalize(), this, obj);
+        }
+    }
+
+    public class CheckerboardMaterial : Material {
+        public Material material1 { get; set; }
+        public Material material2 { get; set; }
+        public float checksize { get; set; }
+
+        public CheckerboardMaterial(Material m1, Material m2, float c) {
+            material1 = m1;
+            material2 = m2;
+            checksize = c;
+        }
+
+        public Material GetMaterial(Shape3D obj, Vector<float> intersection) {
+            var textureCoords = obj.GetTextureCoords(intersection);
+            if(((int)((textureCoords[0]*100)) % 2 == ((int)(textureCoords[1] * 100) % 2))) {
+                return material1;
+            } else {
+                return material2;
+            }
+        }
+
+        public override Rgba32 Intersect(Ray ray, Vector<float> intersection, Vector<float> normal, Shape3D obj) {
+            return GetMaterial(obj, intersection).Intersect(ray, intersection, normal, obj);
         }
     }
 

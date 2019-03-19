@@ -12,14 +12,23 @@ namespace Raytracing {
 
     public class LightSource {
         public Rgba32 color { get; private set; }
-        public Vector position { get; private set; }
+        public Vector position { get; set; }
+
+        public float strength { get; private set; }
         public LightSource(Vector pos) {
             position = pos;
             color = Rgba32.White;
+            strength = 1.0f;
         }
         public LightSource(Vector pos, Rgba32 col) {
             position = pos;
             color = col;
+            strength = 1.0f;
+        }
+        public LightSource(Vector pos, Rgba32 col, float str) {
+            position = pos;
+            color = col;
+            strength = str;
         }
     }
 
@@ -39,12 +48,12 @@ namespace Raytracing {
 
 
     public class PhongIlluminationModel {
-        public World world { get; private set; }
 
+        public World world { get; private set; }
         public Camera camera { get; private set; }
-        public PhongIlluminationModel(World w, Camera c) {
+        public PhongIlluminationModel(World w) {
             world = w;
-            camera = c;
+            camera = w.cameras[0];
         }
         
         //////
@@ -58,6 +67,7 @@ namespace Raytracing {
         // ka - ambient coefficient
         // La - world ambient radiance 
         // kd - diffuse coefficient
+        // ke - specular exponent
         // [] - summation of all the light sources (i)
         // Li - radiance of light i
         // Si - angle of incidence of light i
@@ -99,16 +109,21 @@ namespace Raytracing {
                     if(!o_obj.Equals(obj))
                         if(o_obj.Intersect(S, out var I, out var N)) 
                             shaded = true;
-                    
                 }
 
                 if(!shaded) {
                     // diffuse
                     Vector LiOd = Li.color.ToVector().Multiply(Od).Clamp(0.0f, 1.0f);
+                    float dist = (float)Distance.Euclidean(Li.position, lIntersection);
+
+                    float attenuation = Li.strength/(dist*dist);
+                    // System.Console.WriteLine(attenuation);
+                    LiOd *= attenuation;
                     float SdotN = Sdir.DotProduct(normal).Clamp(0.0f, 1.0f);
                     Ld += (SdotN * LiOd);
                     // specular
                     Vector LiOs = Li.color.ToVector().Multiply(Os).Clamp(0.0f, 1.0f);
+                    LiOs *= attenuation;
                     float RdotV = ((float)Math.Pow(Rdir.DotProduct(V), material.specularExponent)).Clamp(0.0f, 1.0f);
                     Ls += (RdotV * LiOs);
                 }
