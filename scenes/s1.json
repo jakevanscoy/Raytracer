@@ -1,0 +1,76 @@
+{
+    "materials": {
+
+        "redPhong": {
+            "type":"phong",
+            "colors":[
+                [1.0, 0.0, 0.0],
+                [1.0, 0.2, 0.3]
+            ], 
+            "coefficients":[1.0, 1.0],
+            "highlight": 5.0
+        },
+
+        "bluePhong": {
+            "type":"phong",
+            "colors":[
+                [0.0, 0.0, 1.0],
+                [0.3, 0.2,1.0]
+            ], 
+            "coefficients":[1.0, 1.0],
+            "highlight": 5.0
+        },
+
+        "yellowPhong": {
+            "type":"phong",
+            "colors":[
+                [1.0, 0.8, 0.25],
+                [1.0, 1.0,1.0]
+            ], 
+            "coefficients":[1.0, 1.0],
+            "highlight": 5.0
+        },
+
+        "redYellowChecker": {
+            "type":"checker",
+            "materials":[
+                "redPhong",
+                "yellowPhong"
+            ]
+        }
+    },
+
+    "lights": {
+
+        "main": { 
+            "position": [ 0.0, -2.0, -2.0], 
+            "color": [1.0, 1.0, 1.0],
+            "strength":7.5 
+        }
+
+    },
+
+    "objects": {
+
+        "s1": {
+            "shape": "sphere",
+            "position": [ -0.33,  -0.2,  -1.75],
+            "radius": 0.15,
+            "material": "redPhong"
+        },
+
+        "s2": {
+            "shape": "sphere",
+            "position": [-0.1,  -0.05,  -1.0],
+            "radius": 0.15,
+            "material": "bluePhong"
+        }, 
+
+        "p0": {
+            "shape": "plane",
+            "position": [0.0,  0.0, 5.0],
+            "normal": [0.0,  0.0, -1.0],
+            "material": "redYellowChecker"
+        }
+    }
+}

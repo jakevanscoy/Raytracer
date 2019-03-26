@@ -30,6 +30,7 @@ namespace Raytracing {
     }
 
     public class PhongMaterial : Material {
+
         public PhongIlluminationModel lightingModel { get; private set; }
 
         // material color variables 
@@ -81,8 +82,10 @@ namespace Raytracing {
         }
 
         public Material GetMaterial(Shape3D obj, Vector<float> intersection) {
-            var textureCoords = obj.GetTextureCoords(intersection);
-            if(((int)((textureCoords[0]*100)) % 2 == ((int)(textureCoords[1] * 100) % 2))) {
+            var tex = obj.GetTextureCoords(intersection);
+            float row = tex[1] / checksize;
+            float col = tex[0] / checksize;
+            if((int)row % 2 == (int)col % 2) {
                 return material1;
             } else {
                 return material2;

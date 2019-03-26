@@ -9,8 +9,19 @@ using MathNet.Numerics.LinearAlgebra;
 
 namespace Raytracing {
     using Vector = Vector<float>;
+
+    public class WorldAnimator {
+
+        public List<Animator> animators;
+        public World world;
+        public WorldAnimator(List<Animator> _animators, World _world) {
+            animators = _animators;
+            world = _world;
+        }
+    }
+
     public class Animator {
-        
+        public Vector start;
         public Vector target;
         public Vector animator;
         public VectorTransformer transformer;

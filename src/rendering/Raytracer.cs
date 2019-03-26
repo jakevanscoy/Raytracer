@@ -13,12 +13,13 @@ namespace Raytracing {
     public class Raytracer {
         public Camera camera {get; set;}
         public World world {get; set;}
-        public Shape3D[] animationObjects;
+
+        private static Random random = new Random();
 
         // default constructor
         public Raytracer(int width = 800, int height = 800) {
             // initialize default world and Object3Ds
-            world = SceneFactory.GetDefaultWorld(width, height);
+            world = SceneFactory.GetGourdWorld(width, height);
             camera = world.cameras[0];
         }
 
@@ -41,7 +42,9 @@ namespace Raytracing {
                         Rgba32 color;
                         float rT = 0, gT = 0, bT = 0;
                         for(int s = 0; s < samples; s++){
-                            color = camera.CastRay(world, x_s, y_s);
+                            float rx_s = x_s + (float)((random.NextDouble() * (x_inc/2)) - x_inc/4);
+                            float ry_s = y_s + (float)((random.NextDouble() * (y_inc/2)) - y_inc/4);
+                            color = camera.CastRay(world, rx_s, ry_s);
                             rT += (float)color.R / 255f;
                             gT += (float)color.G / 255f;
                             bT += (float)color.B / 255f;
@@ -74,13 +77,14 @@ namespace Raytracing {
             Vector lp = Vector.Build.DenseOfVector(l1.position);
             Vector tr1 = Vector.Build.DenseOfArray(new float[] { 0.0f,  0.0f, -0.03f });
             Vector tr2 = Vector.Build.DenseOfArray(new float[] { 0.0f,  0.0f,  0.03f });
+            Vector tr3 = Vector.Build.DenseOfArray(new float[] { 0.03f, 0.0f,  0.0f });
 
             Animator a = new Animator(cp, tr1, Animator.add);
             Animator b = new Animator(cl, tr2, Animator.add);
-            Animator c = new Animator(lp, tr2, Animator.add);
+            Animator c = new Animator(lp, tr3, Animator.add);
 
             var frameWatch = System.Diagnostics.Stopwatch.StartNew();
-            var masterImage = Render(samples:2);
+            var masterImage = Render(samples:1);
             frameWatch.Stop();
             var time = frameWatch.Elapsed;
             var est = time.Multiply(frames - 1);
@@ -90,18 +94,20 @@ namespace Raytracing {
                 frameWatch = System.Diagnostics.Stopwatch.StartNew();
                 var imageTmp = Render(samples:1);
                 imageTmp.Frames[0].MetaData.FrameDelay = interval;
-                a.Animate(f * ascale);
-                b.Animate(f * ascale);
-
-                camera.position = a.target;
-                camera.lookAt = b.target;
-                // l1.position = c.target;
-                // add current image frame to master image frames
-                masterImage.Frames.AddFrame(imageTmp.Frames[0]);
+                lock(this){
+                    // add current image frame to master image frames
+                    masterImage.Frames.AddFrame(imageTmp.Frames[0]);
+                }
                 frameWatch.Stop();
                 time = frameWatch.Elapsed;
                 est = time.Multiply(frames - (f));
                 rpb.PrintProgressEstTime(f, est);
+                a.Animate(f * ascale);
+                b.Animate(f * ascale);
+                c.Animate(f * ascale);
+                camera.position = a.target;
+                camera.lookAt = b.target;
+                l1.position = c.target;
             }
             bool saved = false;
             int attempts = 0;
