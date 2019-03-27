@@ -12,21 +12,21 @@ namespace Raytracing {
     public abstract class BasicObject {
         public int objID {get; set;}
         public Vector center {get; set;}
-        public abstract void Scale(float sx, float sy, float sz);
 
         public Matrix<float> GetTranslateMatrix(float tx, float ty, float tz) {
-            var matrix = Matrix<float>.Build.DiagonalIdentity(4,4);
-            matrix[0, 3] = tx;
-            matrix[1, 3] = ty;
-            matrix[2, 3] = tz;
+            var matrix = Matrix<float>.Build.DenseIdentity(4,4);
+            matrix[0, 2] = tx;
+            matrix[1, 2] = ty;
+            matrix[2, 2] = tz;
             return matrix;
         }
 
         public virtual void Translate(float tx, float ty, float tz) {
-            var matrix = GetTranslateMatrix(tx, ty, tz);
-            center = matrix * center;     
+            // var matrix = GetTranslateMatrix(tx, ty, tz);
+            center[0] += tx;
+            center[1] += ty;
+            center[2] += tz;
         }
-
 
         public Matrix<float> GetRotateXMatrix(float theta) {
             var cosT = (float)Math.Cos(theta);
@@ -78,6 +78,16 @@ namespace Raytracing {
             var matrix = GetRotateZMatrix(theta);
             center = matrix * center;       
         }
-    
+
+        public Matrix<float> GetScaleMatrix(float sx, float sy, float sz) {
+            var matrix = Matrix<float>.Build.DiagonalOfDiagonalArray(new float[]{sx, sy, sz});
+            return matrix;
+        }
+
+        public virtual void Scale(float sx, float sy, float sz) {
+            var matrix = GetScaleMatrix(sx, sy, sz);
+            center = matrix * center;
+        }
+
     }
 }

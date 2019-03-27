@@ -71,9 +71,9 @@ namespace Raytracing {
         public Vector uv0 {get; set;}
         public Vector uv1 {get; set;}
         public Vector uv2 {get; set;}
-        public Vector normal0 {get; private set;}
-        public Vector normal1 {get; private set;}
-        public Vector normal2 {get; private set;}
+        public Vector normal0 {get; set;}
+        public Vector normal1 {get; set;}
+        public Vector normal2 {get; set;}
 
         private const float kEpsilon = 0.0000001f; // constant used in intersection method
 
@@ -186,14 +186,16 @@ namespace Raytracing {
                 return false;
 
             x = idet * edge02.DotProduct(qvec);
-            if(x > kEpsilon) {
-                intersection[0][0] = x;
-                intersection[0][1] = y;
-                intersection[0][2] = z;
-                return true;
-            } else {
-                return false;
-            }
+            // if(x > kEpsilon) {
+
+            intersection[0][0] = x;
+            intersection[0][1] = y;
+            intersection[0][2] = z;
+            return true;
+
+            // } else {
+                // return false;
+            // }
         }
     }
 
