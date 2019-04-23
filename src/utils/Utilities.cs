@@ -175,14 +175,14 @@ namespace Raytracing {
             return result;
         }
 
-        public static Vector Reflect(Vector inVec, Vector mirrorVec) {
-            float c = -Dot3(inVec, mirrorVec);
-            var result = Vector.Build.Dense(3);
-            result[0] = -(inVec[0] + (2 * mirrorVec[0] * c));
-            result[1] = -(inVec[1] + (2 * mirrorVec[1] * c));
-            result[2] = -(inVec[2] + (2 * mirrorVec[2] * c));
-            return result;
-        }
+        // public static Vector Reflect(Vector inVec, Vector mirrorVec) {
+        //     float c = -Dot3(inVec, mirrorVec);
+        //     var result = Vector.Build.Dense(3);
+        //     result[0] = -(inVec[0] + (2 * mirrorVec[0] * c));
+        //     result[1] = -(inVec[1] + (2 * mirrorVec[1] * c));
+        //     result[2] = -(inVec[2] + (2 * mirrorVec[2] * c));
+        //     return result;
+        // }
 
         public static Vector Clamp(this Vector v, float min, float max) {
             v[0].Clamp(min, max);
@@ -199,6 +199,42 @@ namespace Raytracing {
             return (nVec * (2.0f * Dot3(inVec, nVec))) - inVec;
         }
 
+
+        public static Vector GetRefraction(Vector dir, Vector normal, float in_index, float tr_index) {
+            dir = dir.Normalize();
+            normal = normal.Normalize();
+            float nd = Dot3(normal, dir);
+            float nd2 = nd * nd;
+            float ni = in_index;
+            float nt = tr_index;
+            Vector norm = normal;
+            if(nd > 0) {
+                nd = -nd;
+                // OUTSIDE
+            } else {
+                // INSIDE
+                norm = -normal;
+                ni = tr_index;
+                nt = in_index;
+            }
+            float ni2 = ni * ni;
+            float nt2 = nt * nt;
+            float ind = ni / nt;
+            float ind2 = ind * ind;
+            float k = 1 - ((ind2 * (1 - nd2)));
+            if(k < 0) {
+                //TOTAL INTERNAL REFLECTION
+                return Reflected(-dir, norm);
+            } else {
+                var left = (ni * (dir - norm * (nd)))/nt;
+                return left + (norm * (float)Math.Sqrt(k));
+            }
+            // return k < 0 ? Reflected(dir, norm) : norm * dir + (norm * nd - (float)Math.Sqrt(k)) * n; 
+            // var tmpLeft = (ni * (dir - norm * (nd))) / nt;
+            // var tmpRight = norm * (float)Math.Sqrt(ni2 * ((1-nd2)/nt2));
+            // return tmpLeft + tmpRight;
+        }
+
         public static float ByteToFloat(byte b) {
             return b / 255.0f;
         }
@@ -209,6 +245,62 @@ namespace Raytracing {
             float B = Math.Max(vector[2], 0);
             float A = 1.0f;
             return new Rgba32(R, G, B, A);
+        }
+
+        public static Vector GetVector4(this Vector vector) {
+            var v4 = Vector.Build.Dense(4);
+            v4[0] = vector[0];
+            v4[1] = vector[1];
+            v4[2] = vector[2];
+            v4[3] = 1.0f;
+            return v4;
+        }
+
+        public static void SortObjects(int dimension, ref List<Shape3D> obj) {
+            MergeSortObjects(dimension, ref obj, 0, obj.Count);
+        }
+
+        private static void MergeSortObjects(int d, ref List<Shape3D> obj, int left, int right) {
+            if(right < left)
+                return; 
+            int middle = (left + right) / 2;
+            MergeSortObjects(d, ref obj, left, middle);
+            MergeSortObjects(d, ref obj, middle+1, right);
+            MergeObjects(d, ref obj, left, middle, right);
+        }
+
+        private static void MergeObjects(int d, ref List<Shape3D> obj, int left, int middle, int right) {
+            int n1 = middle - left + 1;
+            int n2 = right - middle;
+            var l_tmp = new List<Shape3D>();
+            var r_tmp = new List<Shape3D>();
+            int i = 0, j = 0, k = 0;
+
+            for(i = 0; i < n1; i++) 
+                l_tmp[i] = obj[left + i]; 
+            for(j = 0; j < n2; j++) 
+                r_tmp[j] = obj[middle + 1 + j]; 
+
+            while(i < n1 && j < n2) {
+                if(l_tmp[i].center[d] <= r_tmp[j].center[d]) {
+                    obj[k] = l_tmp[i];
+                    i++;
+                } else {
+                    obj[k] = r_tmp[j];
+                    j++;
+                }
+                k++;
+            }
+            while(i < n1) {
+                obj[k] = l_tmp[i];
+                i++;
+                k++;
+            }
+            while(j < n2) {
+                obj[k] = r_tmp[j];
+                j++;
+                k++;
+            }
         }
 
         public static string PrettyPrint(this TimeSpan ts) {

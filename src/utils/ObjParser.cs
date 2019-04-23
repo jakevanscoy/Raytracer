@@ -19,7 +19,7 @@ namespace Raytracing {
             var loader = factory.Create();
             var fs = File.OpenRead(filename);
             var result = loader.Load(fs);
-            List<Triangle> objTris = new List<Triangle>();
+            List<Shape3D> objShapes = new List<Shape3D>();
             var m = new BasicMaterial(Rgba32.Gray);
             foreach(var g in result.Groups) {
                 foreach(var f in g.Faces) {
@@ -31,11 +31,23 @@ namespace Raytracing {
                         Vector vert = Vector.Build.DenseOfArray(new float[] {vx, vy, vz});
                         verts[fv] = vert;
                     }
-                    var t = new Triangle(verts, m);
-                    objTris.Add(t);
+                    Shape3D shape= null;
+                    switch(f.Count){ 
+                        case 3:
+                            shape = new Triangle(verts, m);
+                            break;
+                        case 4:
+                            shape = new Plane(verts, m);
+                            break;
+                        default:
+                            shape = new Plane(verts, m);
+                            break;
+                    }
+                    if(shape != null)
+                        objShapes.Add(shape);
                 }
             }
-            ComplexObject obj = new ComplexObject(objTris, m);
+            ComplexObject obj = new ComplexObject(objShapes, m);
             return obj;
         }
     }

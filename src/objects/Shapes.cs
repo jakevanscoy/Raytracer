@@ -9,7 +9,7 @@ namespace Raytracing {
 
     using Vector = Vector<float>;
     /// The base class for all of our 3D Objects
-    public abstract class Shape3D : BasicObject {
+    public abstract class Shape3D : BasicObject  {
         public Material material {get; set;}
         public abstract bool Intersect(Ray ray, out Vector[] intersection, out Vector[] normal);
         public virtual Vector GetTextureCoords(Vector intersection) {
@@ -18,27 +18,26 @@ namespace Raytracing {
     }
 
     public class ComplexObject : Shape3D {
-        public List<Triangle> triangles { get; set; }
-        public ComplexObject(List<Triangle> tris, Material m) {
-            triangles = tris;
+        public List<Shape3D> shapes { get; set; }
+        public ComplexObject(List<Shape3D> s, Material m) {
+            shapes = s;
             material = m;
         }
 
         public override void Scale(float sx, float sy, float sz) {
             // var matrix = Matrix<float>.Build.DiagonalOfDiagonalArray(new float[]{sx, sy, sz});
-            foreach(var t in triangles) {
+            foreach(var t in shapes) {
                 t.Scale(sx, sy, sz);
             }            
         }
 
-
         public override bool Intersect(Ray ray, out Vector<float>[] intersection, out Vector<float>[] normal) {
-            Triangle closestT = null;
+            Shape3D closestT = null;
             intersection = new Vector[1];
             normal = new Vector[1];
             float closestD = float.MaxValue;
             int ti = 0;
-            foreach(Triangle t in triangles) {
+            foreach(Shape3D t in shapes) {
                 if(t.Intersect(ray, out var i, out var n)) {
                     float dist = Math.Abs((ray.origin - i[0]).Length());
                     if(dist < closestD) {
@@ -199,11 +198,9 @@ namespace Raytracing {
         }
     }
 
-
-
     public class Sphere : Shape3D {
-        public float radius {get; private set;}        
-        public float radius2 {get; private set;}
+        public float radius {get; set; }        
+        public float radius2 {get; set;}
         public Sphere(Vector center, float radius, Material material) {
             this.center = center;
             this.radius = radius;
@@ -276,8 +273,8 @@ namespace Raytracing {
         public class Plane : Shape3D {
             
         public Vector normal {get; set;}
-        private Vector min_bounds;
-        private Vector max_bounds;
+        public Vector min_bounds;
+        public Vector max_bounds;
         public Vector p0 {get; set;}
         public Vector p1 {get; set;}
         public Vector p2 {get; set;}
@@ -303,10 +300,10 @@ namespace Raytracing {
             "projection vectors" (H, V) of the plane. 
             Using those, we can calculate p0-3 w.r.t. the center 
          */                 
-        public Plane(Vector center, Vector normal, float width, float height,  Material material) {
+        public Plane(Vector center, Vector normal, float width, float height,  Material m) {
             this.center = center;
             this.normal = normal.Normalize();
-            this.material = material;
+            this.material = m;
             if(normal[1] == 0.0f) {
                 normal[1] = 0.000001f;
             }
@@ -334,8 +331,54 @@ namespace Raytracing {
             MakeBounds(p3);
         }
 
+        public Plane(Vector[] v, Material m) {
+            p0 = v[0];
+            p1 = v[1];
+            p2 = v[2];
+            p3 = v[3];
+            MakeBounds(p0);
+            MakeBounds(p1);
+            MakeBounds(p2);
+            MakeBounds(p3);
+            center = (p0 + p1 + p2 + p3) / 4;
+            normal = CalcNormal();
+            material = m;
+        }
+
+        public Vector CalcNormal() {
+            var edge01 = p0 - p1;
+            var edge02 = p0 - p2;
+            var N = Vector.Build.Dense(3);
+            N[0] = (edge01[1] * edge02[2]) - (edge01[2] * edge02[1]);
+            N[1] = (edge01[2] * edge02[0]) - (edge01[0] * edge02[2]);
+            N[2] = (edge01[0] * edge02[1]) - (edge01[1] * edge02[0]);
+            return N.Normalize();
+        }
+
         public override void Scale(float sx, float sy, float sz) {
             var matrix = Matrix<float>.Build.DiagonalOfDiagonalArray(new float[]{sx, sy, sz});
+        }
+
+        public override void Translate(float tx, float ty, float tz) {
+            var matrix = GetTranslateMatrix(tx, ty, tz);
+            var p04 = p0.GetVector4();
+            var p14 = p1.GetVector4();
+            var p24 = p2.GetVector4();
+            var p34 = p3.GetVector4();
+            p04 = matrix * p04;
+            p14 = matrix * p14;
+            p24 = matrix * p24;
+            p34 = matrix * p34;
+            p0 = p04.SubVector(0,3);
+            p1 = p14.SubVector(0,3);
+            p2 = p24.SubVector(0,3);
+            p3 = p34.SubVector(0,3);
+
+            MakeBounds(p0);
+            MakeBounds(p1);
+            MakeBounds(p2);
+            MakeBounds(p3);
+            center = (p0 + p1 + p2 + p3) / 4;
         }
 
         private void MakeBounds(Vector p) {

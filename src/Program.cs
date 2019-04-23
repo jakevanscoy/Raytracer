@@ -24,12 +24,18 @@ namespace Raytracing {
                         frames = int.Parse(args[2]);
                     }
                     if(args.Length > 3) {
-                        fname = args[3];
+                        if(frames > 1)
+                            length = float.Parse(args[3]);
+                        else
+                            fname = args[3];
                     }
                     if(args.Length > 4) {
-                        length = float.Parse(args[4]);
+                        fname = args[4];
                     }
                 } catch {
+                    foreach(string s in args) {
+                        System.Console.WriteLine(s);
+                    }
                     width = 600;
                     height = 400;
                     length = 1.0f;
@@ -45,7 +51,7 @@ namespace Raytracing {
                 raytracer.RenderAnimation(filename:fname, frames:frames, length:length);
             } else {
                 System.Console.WriteLine("Rendering single image...");
-                raytracer.RenderWithProgress(fname+".png", samples:2);
+                raytracer.Render(fname+".png", samples:2);
             }
             watch.Stop();
             var time = watch.Elapsed;

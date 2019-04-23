@@ -24,7 +24,6 @@ namespace Raytracing {
     
     }
 
-
     public class PhongIlluminationModel {
 
         public World world { get; private set; }
@@ -57,9 +56,10 @@ namespace Raytracing {
             Vector La = world.ambientLight.ToVector();
             float ka = world.ambientCoefficient;
             L += (La * ka);
-            // add up diffuse/specular lighting for each light
+            // add up diffuse/specular/reflection lighting for each light
             Vector Ld = Vector.Build.Dense(3);
             Vector Ls = Vector.Build.Dense(3);
+            Vector Lr = Vector.Build.Dense(3);
 
             // object/material diffuse/specular colors
             Vector Od = material.diffuseColor.ToVector();
@@ -69,42 +69,47 @@ namespace Raytracing {
             Vector V = -ray.direction.Normalize();
             // shift intersection to avoid self-collision
             Vector lIntersection = isect + (normal * 0.0001f);
+
             foreach(LightSource Li in world.GetLightSources()) {
                 // shadow ray
                 Vector Sdir = (Li.center - lIntersection).Normalize();
                 Ray S = new Ray(lIntersection, Sdir);
                 // reflected ray
                 Vector Rdir = Extensions.Reflected(Sdir, normal).Normalize();
-                Ray R = new Ray(lIntersection, Rdir);
+                // Ray R = new Ray(lIntersection, Rdir);
                 // check for shadow ray -> other object intersection
                 bool shaded = false;
+                float shade = 0.0f;
                 foreach(Shape3D o_obj in world.objects) {
                     if(!o_obj.Equals(obj))
-                        if(o_obj.Intersect(S, out var I, out var N)) 
+                        if(o_obj.Intersect(S, out var I, out var N)) {
                             shaded = true;
+                            shade = 1.0f - Extensions.Clamp(o_obj.material.kTransmission, 0.0f, 1.0f);
+                        }
                 }
-
-                if(!shaded) {
+                if(!shaded || shade < 1.0f) {
                     // diffuse
                     Vector LiOd = Li.color.ToVector().Multiply(Od).Clamp(0.0f, 1.0f);
                     float dist = (float)Distance.Euclidean(Li.center, lIntersection);
-
                     float attenuation = Li.strength/(dist*dist);
                     // System.Console.WriteLine(attenuation);
                     LiOd *= attenuation;
                     float SdotN = Sdir.DotProduct(normal).Clamp(0.0f, 1.0f);
                     Ld += (SdotN * LiOd);
+                    Ld -= shade;
+                    Ld.Clamp(0.0f, 1.0f);
                     // specular
                     Vector LiOs = Li.color.ToVector().Multiply(Os).Clamp(0.0f, 1.0f);
                     LiOs *= attenuation;
                     float RdotV = ((float)Math.Pow(Rdir.DotProduct(V), material.specularExponent)).Clamp(0.0f, 1.0f);
                     Ls += (RdotV * LiOs);
+                    Ls -= shade;
+                    Ls.Clamp(0.0f, 1.0f);
                 }
             }
             Ld *= material.kDiffuse;
             Ls *= material.kSpecular;
-            L += Ld;
-            L += Ls;
+            L += (Ld + Ls);
             return L.Clamp(0.0f, 1.0f).ToColor();
         }
     }
