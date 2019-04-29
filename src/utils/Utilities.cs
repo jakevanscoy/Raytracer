@@ -114,6 +114,22 @@ namespace Raytracing {
             else
                 return v;
         }
+        public static Vector Project(this Vector vec, Vector other)
+        {
+            // (scalar/scalar)*(vector) = (vector)
+            return (other*vec)/(other*other)*other;
+        }
+        
+
+        public static void Project(List<Vector> points, Vector axis, out float min, out float max) {
+            min = float.MaxValue;
+            max = float.MinValue;
+            foreach(Vector v in points) {
+                var adotv = axis.DotProduct(v);
+                min = Math.Min(min, adotv);
+                max = Math.Max(max, adotv);
+            }
+        }
 
         public static float Length(this Vector v) {
             float sum = 0.0f;
@@ -175,15 +191,6 @@ namespace Raytracing {
             return result;
         }
 
-        // public static Vector Reflect(Vector inVec, Vector mirrorVec) {
-        //     float c = -Dot3(inVec, mirrorVec);
-        //     var result = Vector.Build.Dense(3);
-        //     result[0] = -(inVec[0] + (2 * mirrorVec[0] * c));
-        //     result[1] = -(inVec[1] + (2 * mirrorVec[1] * c));
-        //     result[2] = -(inVec[2] + (2 * mirrorVec[2] * c));
-        //     return result;
-        // }
-
         public static Vector Clamp(this Vector v, float min, float max) {
             v[0].Clamp(min, max);
             v[1].Clamp(min, max);
@@ -199,6 +206,34 @@ namespace Raytracing {
             return (nVec * (2.0f * Dot3(inVec, nVec))) - inVec;
         }
 
+        public static Vector Refract(Vector dir, Vector normal, float n_i, float n_t) {
+            var d = dir.Normalize();
+            var norm = normal.Normalize();
+            float cosI = d.DotProduct(norm);
+            if(cosI < 0f) {
+                cosI = -cosI;
+            } else {
+                norm = -norm;
+                var swp = n_i;
+                n_i = n_t;
+                n_t = swp;
+            }
+            float cosI2 = cosI * cosI;
+            var n = n_i / n_t;
+            var n2 = n * n;
+            var sinN2 = (n2) * (1.0f - cosI2);
+            var cosN = (float)Math.Sqrt(1.0f - sinN2);
+
+            var tir = 1 - n * n * (1 - cosI2);
+            if(tir < 0.0f) {
+                return Reflected(-dir, normal);
+            } 
+            if(n == 1.0f) {
+                return d;
+            }
+            var t = (n * d) + ((n * cosI) - (float)Math.Sqrt(1.0f - sinN2)) * norm;
+            return t;
+        }
 
         public static Vector GetRefraction(Vector dir, Vector normal, float in_index, float tr_index) {
             dir = dir.Normalize();

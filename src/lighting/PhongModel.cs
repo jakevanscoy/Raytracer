@@ -4,33 +4,47 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using MathNet.Numerics;
 using MathNet.Numerics.LinearAlgebra;
- 
 
-namespace Raytracing {
-    
+
+namespace Raytracing
+{
+
     using Vector = Vector<float>;
 
-    public class Ray {
-        public Vector origin {get; set;}
-        public Vector direction {get; set;}
-        public Ray(Vector O, Vector D) {
+    public class Ray
+    {
+        public Vector origin { get; set; }
+        public Vector direction { get; set; }
+        public Vector i_dir { get; set; }
+        public int[] sign { get; set; }
+        public Ray(Vector O, Vector D)
+        {
             origin = O;
             direction = D;
+            i_dir = 1.0f / direction;
+            sign = new int[] {
+                i_dir[0] < 0 ? 1 : 0,
+                i_dir[1] < 0 ? 1 : 0,
+                i_dir[2] < 0 ? 1 : 0,
+            };
         }
 
-        public Ray Reverse() {
+        public Ray Reverse()
+        {
             return new Ray(this.origin, -this.direction);
         }
-    
+
     }
 
-    public class PhongIlluminationModel {
+    public class PhongIlluminationModel
+    {
 
         public World world { get; private set; }
-        public PhongIlluminationModel(World w) {
+        public PhongIlluminationModel(World w)
+        {
             world = w;
         }
-        
+
         //////
         // Phong Illumination Model: 
         //
@@ -49,7 +63,8 @@ namespace Raytracing {
         // Ri - angle of reflectance of light i
         // V  - viewing angle 
         //////
-        public Rgba32 Illuminate(Ray ray, Vector isect, Vector normal, PhongMaterial material, Shape3D obj) {
+        public Rgba32 Illuminate(Ray ray, Vector isect, Vector normal, PhongMaterial material, Shape3D obj, bool KD = false)
+        {
             // initialize Light (zeros)
             Vector L = Vector.Build.Dense(3);
             // add ambient lighting             
@@ -68,11 +83,13 @@ namespace Raytracing {
             // viewing direction
             Vector V = -ray.direction.Normalize();
             // shift intersection to avoid self-collision
-            Vector lIntersection = isect + (normal * 0.0001f);
+            Vector lIntersection = isect + (normal * 0.001f);
 
-            foreach(LightSource Li in world.GetLightSources()) {
+            foreach (LightSource Li in world.GetLightSources())
+            {
                 // shadow ray
                 Vector Sdir = (Li.center - lIntersection).Normalize();
+                float l_d = Math.Abs((Li.center - lIntersection).Length());
                 Ray S = new Ray(lIntersection, Sdir);
                 // reflected ray
                 Vector Rdir = Extensions.Reflected(Sdir, normal).Normalize();
@@ -80,18 +97,38 @@ namespace Raytracing {
                 // check for shadow ray -> other object intersection
                 bool shaded = false;
                 float shade = 0.0f;
-                foreach(Shape3D o_obj in world.objects) {
-                    if(!o_obj.Equals(obj))
-                        if(o_obj.Intersect(S, out var I, out var N)) {
+                if (KD)
+                {
+                    var s_shape = world.TraceRayKD(S, out var i, out var n);
+                    if (s_shape != null)
+                    {
+                        var s_d = Math.Abs((isect - i[0]).Length());
+                        if (s_d < l_d)
+                        {
                             shaded = true;
-                            shade = 1.0f - Extensions.Clamp(o_obj.material.kTransmission, 0.0f, 1.0f);
+                            shade = 1.0f - Extensions.Clamp(s_shape.material.kTransmission, 0.0f, 1.0f);
                         }
+
+                    }
                 }
-                if(!shaded || shade < 1.0f) {
+                else
+                {
+                    foreach (Shape3D o_obj in world.objects)
+                    {
+                        if (!o_obj.Equals(obj))
+                            if (o_obj.Intersect(S, out var I, out var N))
+                            {
+                                shaded = true;
+                                shade = 1.0f - Extensions.Clamp(o_obj.material.kTransmission, 0.0f, 1.0f);
+                            }
+                    }
+                }
+                if (!shaded || shade < 1.0f)
+                {
                     // diffuse
                     Vector LiOd = Li.color.ToVector().Multiply(Od).Clamp(0.0f, 1.0f);
                     float dist = (float)Distance.Euclidean(Li.center, lIntersection);
-                    float attenuation = Li.strength/(dist*dist);
+                    float attenuation = Li.strength / (dist * dist);
                     // System.Console.WriteLine(attenuation);
                     LiOd *= attenuation;
                     float SdotN = Sdir.DotProduct(normal).Clamp(0.0f, 1.0f);

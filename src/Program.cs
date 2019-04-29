@@ -51,7 +51,7 @@ namespace Raytracing {
                 raytracer.RenderAnimation(filename:fname, frames:frames, length:length);
             } else {
                 System.Console.WriteLine("Rendering single image...");
-                raytracer.Render(fname+".png", samples:2);
+                raytracer.Render(fname+".png", samples:1);
             }
             watch.Stop();
             var time = watch.Elapsed;

@@ -6,11 +6,13 @@ using MathNet.Numerics;
 using MathNet.Numerics.LinearAlgebra;
 
 
-namespace Raytracing {
-    
+namespace Raytracing
+{
+
     using Vector = Vector<float>;
 
-    public class World {
+    public class World
+    {
         public List<Camera> cameras { get; private set; }
         public List<Shape3D> objects { get; private set; }
         public Node tree { get; private set; }
@@ -22,10 +24,11 @@ namespace Raytracing {
         public Rgba32 ambientLight { get; set; }
         public float ambientCoefficient { get; set; }
         public float airKt = 1.0f;
-        public World(int w, int h) {
+        public World(int w, int h)
+        {
             width = w;
             height = h;
-            up = Vector.Build.DenseOfArray(new float[]{0.0f, 1.0f, 0.0f});
+            up = Vector.Build.DenseOfArray(new float[] { 0.0f, 1.0f, 0.0f });
             ambientLight = new Rgba32(0.2f, 0.2f, 0.25f, 1.0f);
             ambientCoefficient = 0.1f;
             background = new Rgba32(0.9f, 0.6f, 1.0f, 1.0f);
@@ -34,10 +37,11 @@ namespace Raytracing {
             cameras = new List<Camera>();
         }
 
-        public World(int w, int h, Rgba32 bg_color) {
+        public World(int w, int h, Rgba32 bg_color)
+        {
             width = w;
             height = h;
-            up = Vector.Build.DenseOfArray(new float[]{0.0f, 1.0f, 0.0f});
+            up = Vector.Build.DenseOfArray(new float[] { 0.0f, 1.0f, 0.0f });
             ambientLight = bg_color;
             ambientCoefficient = 0.01f;
             background = bg_color;
@@ -46,45 +50,67 @@ namespace Raytracing {
             cameras = new List<Camera>();
         }
 
-        public List<LightSource> GetLightSources() {
+        public List<LightSource> GetLightSources()
+        {
             return lights;
         }
 
-        public List<Shape3D> GetObjects() {
+        public List<Shape3D> GetObjects()
+        {
             return objects;
         }
 
-        public void AddObject(Shape3D o) {
+        public void AddObject(Shape3D o)
+        {
             o.objID = objects.Count;
             objects.Add(o);
         }
-        public void AddObject(ComplexObject co) {
+        public void AddObject(ComplexObject co)
+        {
             co.objID = objects.Count;
-            foreach(Shape3D s in co.shapes) {
-                s.objID = objects.Count+1;
+            foreach (Shape3D s in co.shapes)
+            {
+                s.objID = objects.Count + 1;
                 objects.Add(s);
             }
         }
 
-        public void AddLightSource(LightSource l) {
+        public void AddLightSource(LightSource l)
+        {
             lights.Add(l);
         }
 
-        public void MakeTree() {
+        public void MakeTree()
+        {
             var center = Vector.Build.Dense(3);
-            var size = Vector.Build.DenseOfArray(new float[] {5.0f, 5.0f, 5.0f});
+            var size = Vector.Build.DenseOfArray(new float[] { 5.0f, 5.0f, 5.0f });
+            foreach (Shape3D s in objects)
+            {
+                var c_d = (center - s.center);
+                for (int i = 0; i < 3; i++)
+                {
+                    if (Math.Abs(c_d[i]) > size[i] / 2)
+                    {
+                        size[i] = (float)Math.Abs(c_d[i] * 2);
+                    }
+                }
+            }
             tree = KDTree.GetTree(objects, new Voxel(center, size));
         }
 
-        public Shape3D TraceRay(Ray ray, out Vector intersect, out Vector normal) {
+        public Shape3D TraceRay(Ray ray, out Vector intersect, out Vector normal)
+        {
             Shape3D closestObj = null;
-            float? closestD = null;   
+            float? closestD = null;
             intersect = null;
-            normal = null;       
-            foreach(Shape3D obj in objects) {
-                if(obj.Intersect(ray, out var i, out var n)) {
+            normal = null;
+            foreach (Shape3D obj in objects)
+            {
+                if (obj.Intersect(ray, out var i, out var n))
+                {
                     float dist = Math.Abs((ray.origin - i[0]).Length());
-                    if(closestD == null || dist < closestD) {
+                    if (closestD == null || dist < closestD)
+                    {
                         closestD = dist;
                         closestObj = obj;
                         intersect = i[0];
@@ -95,7 +121,8 @@ namespace Raytracing {
             return closestObj;
         }
 
-        public Shape3D TraceRayKD(Ray ray, out Vector intersect, out Vector normal) {
+        public Shape3D TraceRayKD(Ray ray, out Vector intersect, out Vector normal)
+        {
             Shape3D hitObj = null;
             intersect = null;
             normal = null;
@@ -103,79 +130,101 @@ namespace Raytracing {
             return hitObj;
         }
 
-        public Vector ReflectAndRefract(Shape3D obj, Ray ray, Vector intersect, Vector normal, int depth) {
-            var cVec = obj.material.Intersect(ray, intersect, normal, obj).ToVector();
-            var lIntersect = intersect + (normal*0.001f);
+        public Vector ReflectAndRefract(Shape3D obj, Ray ray, Vector intersect, Vector normal, int depth)
+        {
+            // var cVec = obj.material.Intersect(ray, intersect, normal, obj).ToVector();
+            var cVec = Vector.Build.Dense(3);
+            var lIntersect = intersect + (normal * 0.001f);
             bool outside = Extensions.Dot3(ray.direction, normal) > 0.0f;
-            if(obj.material.kReflection > 0f) {
+            if (obj.material.kReflection > 0f)
+            {
                 var reflect = Extensions.Reflected(-ray.direction, normal).Normalize();
                 Ray r = new Ray(lIntersect, reflect);
                 SpawnRay(r, out var reflectColor, depth + 1);
                 cVec += (reflectColor.ToVector() * obj.material.kReflection);
-            } 
-            if(obj.material.kTransmission > 0f) {
-                var refract = Extensions.GetRefraction(ray.direction, normal, airKt, obj.material.kTransmission).Normalize();
-                var rO = outside ? intersect + (normal*0.001f) : intersect - (normal*0.001f);
+            }
+            if (obj.material.kTransmission > 0f)
+            {
+                var refract = Extensions.Refract(ray.direction, normal, airKt,
+                    obj.material.kTransmission).Normalize();
+                var rO = outside ? intersect + (normal * 0.001f) : intersect - (normal * 0.001f);
                 Ray r = new Ray(rO, refract);
-                SpawnRay(r, out var refractColor, depth+1);
+                SpawnRay(r, out var refractColor, depth + 1);
                 cVec += (refractColor.ToVector() * obj.material.kTransmission);
             }
             return cVec;
         }
 
-        public Vector ReflectAndRefractKD(Shape3D obj, Ray ray, Vector intersect, Vector normal, int depth) {
-            var cVec = obj.material.Intersect(ray, intersect, normal, obj).ToVector();
-            var lIntersect = intersect + (normal*0.001f);
-            bool outside = Extensions.Dot3(ray.direction, normal) > 0.0f;
-            if(obj.material.kReflection > 0f) {
+        public Vector ReflectAndRefractKD(Shape3D obj, Ray ray, Vector intersect, Vector normal, int depth)
+        {
+            // var cVec = obj.material.Intersect(ray, intersect, normal, obj, true).ToVector();
+            var cVec = Vector.Build.Dense(3);
+            var lIntersect = intersect + (normal * 0.001f);
+            if (obj.material.kReflection > 0f)
+            {
                 var reflect = Extensions.Reflected(-ray.direction, normal).Normalize();
                 Ray r = new Ray(lIntersect, reflect);
                 SpawnRayKD(r, out var reflectColor, depth + 1);
                 cVec += (reflectColor.ToVector() * obj.material.kReflection);
-            } 
-            if(obj.material.kTransmission > 0f) {
-                var refract = Extensions.GetRefraction(ray.direction, normal, airKt, obj.material.kTransmission).Normalize();
-                var rO = outside ? intersect + (normal*0.001f) : intersect - (normal*0.001f);
+            }
+            if (obj.material.kTransmission > 0f)
+            {
+                bool outside = Extensions.Dot3(ray.direction, normal) > 0.0f;
+                var n1 = airKt;
+                var n2 = obj.material.kTransmission;
+                var norm = normal.Clone();
+                var refract = Extensions.Refract(ray.direction, norm, n1, n2).Normalize();
+                var rO = outside ? intersect + (normal * 0.001f) : intersect - (normal * 0.001f);
                 Ray r = new Ray(rO, refract);
-                SpawnRayKD(r, out var refractColor, depth+1);
+                SpawnRayKD(r, out var refractColor, depth + 1);
                 cVec += (refractColor.ToVector() * obj.material.kTransmission);
             }
             return cVec;
         }
 
-        public bool SpawnRay(Ray ray, out Rgba32 color, int depth = 0) {
-            if(depth > 3) {
+        public bool SpawnRay(Ray ray, out Rgba32 color, int depth = 0)
+        {
+            if (depth > 4)
+            {
                 color = (ambientLight.ToVector() * ambientCoefficient).ToColor();//background;
                 return false;
             }
             // color = (ambientLight.ToVector() * ambientCoefficient).ToColor();
             var cVec = Vector.Build.Dense(3);
             Shape3D obj = TraceRay(ray, out var intersect, out var normal);
-            if(obj != null) {
+            if (obj != null)
+            {
                 cVec += obj.material.Intersect(ray, intersect, normal, obj).ToVector();
                 cVec += ReflectAndRefract(obj, ray, intersect, normal, depth);
                 color = cVec.ToColor();
                 return true;
-            } else {
+            }
+            else
+            {
                 color = (ambientLight.ToVector() * ambientCoefficient).ToColor();//background;
                 return false;
             }
         }
 
-        public bool SpawnRayKD(Ray ray, out Rgba32 color, int depth = 0) {
-            if(depth > 3) {
+        public bool SpawnRayKD(Ray ray, out Rgba32 color, int depth = 0)
+        {
+            if (depth > 4)
+            {
                 color = (ambientLight.ToVector() * ambientCoefficient).ToColor();//background;
                 return false;
             }
-             // color = (ambientLight.ToVector() * ambientCoefficient).ToColor();
+            // color = (ambientLight.ToVector() * ambientCoefficient).ToColor();
             var cVec = Vector.Build.Dense(3);
             Shape3D obj = TraceRayKD(ray, out var intersect, out var normal);
-            if(obj != null) {
-                cVec += obj.material.Intersect(ray, intersect, normal, obj).ToVector();
+            if (obj != null)
+            {
+                cVec += obj.material.Intersect(ray, intersect, normal, obj, true).ToVector();
                 cVec += ReflectAndRefractKD(obj, ray, intersect, normal, depth);
                 color = cVec.ToColor();
                 return true;
-            } else {
+            }
+            else
+            {
                 color = (ambientLight.ToVector() * ambientCoefficient).ToColor();//background;
                 return false;
             }

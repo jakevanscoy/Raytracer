@@ -36,7 +36,7 @@ namespace Raytracing {
             Vector rayDirection = Extensions.Normalize(currentLookAt - this.center);
             Ray ray = new Ray(rayOrigin, rayDirection);
             // spawn ray in world, returning a color
-            world.SpawnRay(ray, out var resultColor, 0);
+            world.SpawnRayKD(ray, out var resultColor, 0);
             return resultColor;
         }
 

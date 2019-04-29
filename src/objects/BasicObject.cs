@@ -13,7 +13,13 @@ namespace Raytracing {
         public int objID {get; set;}
         public Vector center {get; set;}
 
+        public Voxel AABB = null;
+
         public BasicObject() { }
+
+        public virtual void MakeAABB() {
+            AABB = new Voxel(center, Vector.Build.DenseOfArray(new float[] {0.01f, 0.01f, 0.01f}));
+        }
 
         public Matrix<float> GetTranslateMatrix(float tx, float ty, float tz) {
             var matrix = Matrix<float>.Build.DenseIdentity(4,4);
@@ -59,13 +65,13 @@ namespace Raytracing {
         public Matrix<float> GetRotateZMatrix(float theta) {
             var cosT = (float)Math.Cos(theta);
             var sinT = (float)Math.Sin(theta);
-            var ry = new float[,] {
+            var rz = new float[,] {
                 { cosT, -sinT, 0.0f, 0.0f },
                 { sinT,  cosT, 0.0f, 0.0f },
                 { 0.0f,  0.0f, 1.0f, 0.0f }, 
                 { 0.0f, 0.0f,  0.0f, 1.0f },
             };
-            var matrix = Matrix<float>.Build.DenseOfArray(ry);  
+            var matrix = Matrix<float>.Build.DenseOfArray(rz);  
             return matrix;
         }
 

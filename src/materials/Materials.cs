@@ -14,7 +14,7 @@ namespace Raytracing {
     public abstract class Material {
         public float kReflection = 0.0f;
         public float kTransmission = 0.0f;
-        public abstract Rgba32 Intersect(Ray ray, Vector intersection, Vector normal, Shape3D obj);
+        public abstract Rgba32 Intersect(Ray ray, Vector intersection, Vector normal, Shape3D obj, bool KD = false);
     }
 
     public class BasicMaterial : Material {
@@ -26,7 +26,7 @@ namespace Raytracing {
         public BasicMaterial(Rgba32 c) {
             color = c;
         }
-        public override Rgba32 Intersect(Ray ray, Vector intersection, Vector normal, Shape3D obj) {
+        public override Rgba32 Intersect(Ray ray, Vector intersection, Vector normal, Shape3D obj, bool KD = false) {
             return this.color;
         }
     }
@@ -82,8 +82,14 @@ namespace Raytracing {
             return new PhongMaterial(model, s0colors, s0coefficients, 7.0f);
         }
 
-        public override Rgba32 Intersect(Ray ray, Vector intersection, Vector normal, Shape3D obj) {
-            return lightingModel.Illuminate(ray, intersection, normal.Normalize(), this, obj);
+        public static PhongMaterial Green(PhongIlluminationModel model) {
+            Rgba32[] s0colors = new Rgba32[] { Rgba32.Green, Rgba32.White };
+            float[] s0coefficients = new float[] { 1.0f, 1.0f };
+            return new PhongMaterial(model, s0colors, s0coefficients, 7.0f);
+        }
+
+        public override Rgba32 Intersect(Ray ray, Vector intersection, Vector normal, Shape3D obj, bool KD = false) {
+            return lightingModel.Illuminate(ray, intersection, normal.Normalize(), this, obj, KD);
         }
     }
 
@@ -112,7 +118,7 @@ namespace Raytracing {
             kSpecular        = 0.001f;
             specularExponent = 0.01f;
             kReflection      = 0.0f;
-            kTransmission    = 1.0f;
+            kTransmission    = 0.9f;
         }
         public static TransmissiveMaterial GetTransmissiveMaterial(PhongIlluminationModel model) {
             TransmissiveMaterial tm = new TransmissiveMaterial(model);
@@ -143,8 +149,8 @@ namespace Raytracing {
             }
         }
 
-        public override Rgba32 Intersect(Ray ray, Vector<float> intersection, Vector<float> normal, Shape3D obj) {
-            return GetMaterial(obj, intersection).Intersect(ray, intersection, normal, obj);
+        public override Rgba32 Intersect(Ray ray, Vector<float> intersection, Vector<float> normal, Shape3D obj, bool KD = false) {
+            return GetMaterial(obj, intersection).Intersect(ray, intersection, normal, obj, KD);
         }
     }
 
