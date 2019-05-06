@@ -5,18 +5,21 @@ using SixLabors.ImageSharp.PixelFormats;
 using MathNet.Numerics;
 using MathNet.Numerics.LinearAlgebra;
 
-namespace Raytracing {
+namespace Raytracing
+{
 
     using Vector = Vector<float>;
-    public class Camera : BasicObject {
-        public Vector lookAt {get; set;}
-        public Vector up {get; set;}
-        public World world {get; private set;}
+    public class Camera : BasicObject
+    {
+        public Vector lookAt { get; set; }
+        public Vector up { get; set; }
+        public World world { get; private set; }
 
         // transforms world coordinates to camera coordinates
-        public Matrix<float> viewTransform {get; private set;}
+        public Matrix<float> viewTransform { get; private set; }
 
-        public Camera(Vector pos, Vector lookAt, Vector up, World world) {
+        public Camera(Vector pos, Vector lookAt, Vector up, World world)
+        {
             this.center = pos;
             this.lookAt = lookAt;
             this.up = world.up;
@@ -28,7 +31,8 @@ namespace Raytracing {
 
         // casts a ray into World w, the direction of the ray is based on
         // screen coordinates x and y
-        public Rgba32 CastRay(World w, float x_s, float y_s) {
+        public Rgba32 CastRay(World w, float x_s, float y_s)
+        {
             Vector rayOrigin = this.center;
             Vector currentLookAt = Vector.Build.DenseOfArray(
                 new float[] { lookAt[0] + x_s, lookAt[1] + y_s, lookAt[2] }

@@ -22,7 +22,7 @@ namespace Raytracing
         public Raytracer(int width = 800, int height = 800)
         {
             // initialize default world and Object3Ds
-            world = SceneFactory.GetManyBallWorld(width, height);
+            world = SceneFactory.GetBlackHoleWorld(width, height);
             System.Console.WriteLine("Building k-d tree...");
             world.MakeTree();
             System.Console.WriteLine(KDTree.PrintNode(world.tree));
@@ -137,12 +137,17 @@ namespace Raytracing
             string message = "Rendering " + frames + " " + world.width + "x" + world.height + " frames...";
             var rpb = new ProgressBar(1, frames, 55, pstyles, message, "Frame");
 
-            // LightSource l1 = world.lights[0];
-            // Plane y_max = (Plane)world.objects[3];
-            // set up frame and animation step intervals
+            BlackHole bh = null;
+            foreach (Shape3D obj in world.objects)
+            {
+                if (obj is BlackHole)
+                {
+                    bh = obj as BlackHole;
+                }
+            }
             var interval = (int)((length / (float)frames) * 100);
             var frameWatch = System.Diagnostics.Stopwatch.StartNew();
-            var rstep = 4.0f / frames;
+            var rstep = 1.0f / frames;
             world.cameras[0].Translate(rstep, 0, 0);
             var masterImage = Render(samples: 1);
             masterImage.Frames[0].MetaData.FrameDelay = interval;
@@ -152,36 +157,21 @@ namespace Raytracing
             rpb.PrintProgressEstTime(1, est);
             for (var f = 1; f <= frames; f++)
             {
-
-                if (f < frames / 4)
+                if (f < frames / 2)
                 {
-                    world.cameras[0].Translate(rstep, 0, 0);
-                }
-                else if (f < 1 + (frames / 4) * 3)
-                {
-                    world.cameras[0].Translate(-rstep, 0, 0);
+                    // bh.center += 0.01f;
+                    bh.sradius -= 0.01f;
+                    // bh.radius2 = bh.radius * bh.radius;
+                    // bh.material.kTransmission += 0.01f;
                 }
                 else
                 {
-                    world.cameras[0].Translate(rstep, 0, 0);
+                    // bh.center -= 0.01f;
+                    bh.sradius += 0.01f;
+                    // bh.radius2 = bh.radius * bh.radius;
+                    // bh.material.kTransmission -= 0.01f;
                 }
 
-                if (f < frames / 4)
-                {
-                    world.cameras[0].lookAt[2] -= rstep;
-                }
-                else if (f < (frames / 2))
-                {
-                    world.cameras[0].lookAt[2] += rstep;
-                }
-                else if (f < 1 + (frames / 4) * 3)
-                {
-                    world.cameras[0].lookAt[2] -= rstep;
-                }
-                else
-                {
-                    world.cameras[0].lookAt[2] += rstep;
-                }
 
                 frameWatch = System.Diagnostics.Stopwatch.StartNew();
                 var imageTmp = Render(samples: 1);

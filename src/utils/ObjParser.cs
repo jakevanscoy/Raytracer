@@ -8,31 +8,47 @@ using MathNet.Numerics.LinearAlgebra;
 using ObjLoader;
 
 
-namespace Raytracing {
-    
+namespace Raytracing
+{
+
     using Vector = Vector<float>;
 
-    public class OBJParser {
+    public class OBJParser
+    {
 
-        public static ComplexObject LoadObjFile(string filename) {
+        public static ComplexObject LoadObjFile(string filename)
+        {
             var factory = new ObjLoader.Loader.Loaders.ObjLoaderFactory();
             var loader = factory.Create();
             var fs = File.OpenRead(filename);
             var result = loader.Load(fs);
             List<Shape3D> objShapes = new List<Shape3D>();
             var m = new BasicMaterial(Rgba32.Gray);
-            foreach(var g in result.Groups) {
-                foreach(var f in g.Faces) {
+            foreach (var g in result.Groups)
+            {
+                foreach (var f in g.Faces)
+                {
                     Vector[] verts = new Vector[f.Count];
-                    for(var fv = 0; fv < f.Count; fv++) {
-                        var vx = result.Vertices[f[fv].VertexIndex-1].X;
-                        var vy = result.Vertices[f[fv].VertexIndex-1].Y;
-                        var vz = result.Vertices[f[fv].VertexIndex-1].Z;
-                        Vector vert = Vector.Build.DenseOfArray(new float[] {vx, vy, vz});
+                    for (var fv = 0; fv < f.Count; fv++)
+                    {
+                        var vx = result.Vertices[f[fv].VertexIndex - 1].X;
+                        var vy = result.Vertices[f[fv].VertexIndex - 1].Y;
+                        var vz = result.Vertices[f[fv].VertexIndex - 1].Z;
+                        Vector vert = Vector.Build.DenseOfArray(new float[] { vx, vy, vz });
                         verts[fv] = vert;
                     }
-                    Shape3D shape= null;
-                    switch(f.Count){ 
+                    Shape3D shape = null;
+                    // Vector c = Vector.Build.Dense(3);
+                    // foreach (Vector v in verts)
+                    // {
+                    //     c += v;
+                    // }
+                    // c /= verts.Length;
+
+                    // shape = new Sphere(c, 0.01f, m);
+
+                    switch (f.Count)
+                    {
                         case 3:
                             shape = new Triangle(verts, m);
                             break;
@@ -43,7 +59,7 @@ namespace Raytracing {
                             shape = new Plane(verts, m);
                             break;
                     }
-                    if(shape != null)
+                    if (shape != null)
                         objShapes.Add(shape);
                 }
             }

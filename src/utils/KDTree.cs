@@ -83,7 +83,12 @@ namespace Raytracing
                     placed = true;
                 }
                 if (!placed)
+                {
+                    // left.Add(s);
+                    // right.Add(s);
+
                     KDTree.nObj++;
+                }
             }
             return new List<Shape3D>[] { left, right };
         }
@@ -241,7 +246,7 @@ namespace Raytracing
             {
                 return InBounds(s as Triangle);
             }
-            else if (s.AABB != null)
+            if (s.AABB != null)
             {
                 return InBounds(s.AABB);
             }
@@ -258,7 +263,6 @@ namespace Raytracing
             // {
             //     return InBounds(s as Plane);
             // }
-
             // else return false;
         }
 
@@ -284,6 +288,7 @@ namespace Raytracing
             }
             return d < s.radius2;
         }
+
 
 
         public bool InBounds(Triangle t)
@@ -424,7 +429,7 @@ namespace Raytracing
 
         public static Node GetNode(List<Shape3D> L, Voxel V, int depth)
         {
-            if (Terminate(L, V) || depth > 5)
+            if (Terminate(L, V) || depth > 8)
             {
                 // nObj += L.Count;
                 return new LeafNode(L, V);
@@ -559,7 +564,7 @@ namespace Raytracing
                 result += "    ";
             if (node is LeafNode)
             {
-                return result + node.ToString() + "\n";
+                return result + node.ToString() + " ";
             }
             else
             {

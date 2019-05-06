@@ -49,7 +49,24 @@ namespace Raytracing
             }
         }
 
-
+        public override void RotateX(float theta)
+        {
+            // var matrix = Matrix<float>.Build.DiagonalOfDiagonalArray(new float[]{sx, sy, sz});
+            foreach (var t in shapes)
+            {
+                t.RotateX(theta);
+                // t.MakeAABB();
+            }
+        }
+        public override void RotateY(float theta)
+        {
+            // var matrix = Matrix<float>.Build.DiagonalOfDiagonalArray(new float[]{sx, sy, sz});
+            foreach (var t in shapes)
+            {
+                t.RotateY(theta);
+                // t.MakeAABB();
+            }
+        }
         public override void RotateZ(float theta)
         {
             // var matrix = Matrix<float>.Build.DiagonalOfDiagonalArray(new float[]{sx, sy, sz});
@@ -60,7 +77,8 @@ namespace Raytracing
             }
         }
 
-        public void SetMaterial(Material m) {
+        public void SetMaterial(Material m)
+        {
             foreach (var t in shapes)
             {
                 t.material = m;
@@ -108,7 +126,7 @@ namespace Raytracing
         public Vector vertex0 { get; set; }
         public Vector vertex1 { get; set; }
         public Vector vertex2 { get; set; }
-        public List<Vector> vertices {get; set;}
+        public List<Vector> vertices { get; set; }
         public Vector uv0 { get; set; }
         public Vector uv1 { get; set; }
         public Vector uv2 { get; set; }
@@ -125,7 +143,7 @@ namespace Raytracing
             vertex2 = v2;
             center = (v0 + v1 + v2) / 3;
             material = m;
-            vertices = new List<Vector>(new Vector[]{vertex0, vertex1, vertex2});
+            vertices = new List<Vector>(new Vector[] { vertex0, vertex1, vertex2 });
             normal0 = CalcNormal();
             MakeAABB();
         }
@@ -135,13 +153,14 @@ namespace Raytracing
             vertex0 = v[0];
             vertex1 = v[1];
             vertex2 = v[2];
-            vertices = new List<Vector>(new Vector[]{vertex0, vertex1, vertex2});
+            vertices = new List<Vector>(new Vector[] { vertex0, vertex1, vertex2 });
             normal0 = vn[0];
             normal1 = vn[1];
             normal2 = vn[2];
             uv0 = vt[0];
             uv1 = vt[1];
             uv2 = vt[2];
+            center = (vertex0 + vertex1 + vertex2) / 3;
             material = m;
             MakeAABB();
         }
@@ -151,11 +170,12 @@ namespace Raytracing
             vertex0 = v[0];
             vertex1 = v[1];
             vertex2 = v[2];
-            vertices = new List<Vector>(new Vector[]{vertex0, vertex1, vertex2});
+            vertices = new List<Vector>(new Vector[] { vertex0, vertex1, vertex2 });
             uv0 = vt[0];
             uv1 = vt[1];
             uv2 = vt[2];
             normal0 = CalcNormal();
+            center = (vertex0 + vertex1 + vertex2) / 3;
             material = m;
             MakeAABB();
         }
@@ -165,7 +185,7 @@ namespace Raytracing
             vertex0 = v[0];
             vertex1 = v[1];
             vertex2 = v[2];
-            vertices = new List<Vector>(new Vector[]{vertex0, vertex1, vertex2});
+            vertices = new List<Vector>(new Vector[] { vertex0, vertex1, vertex2 });
             center = (vertex0 + vertex1 + vertex2) / 3;
             normal0 = CalcNormal();
             material = m;
@@ -176,20 +196,22 @@ namespace Raytracing
         {
             var max = Vector.Build.DenseOfArray(new float[] { float.MinValue, float.MinValue, float.MinValue });
             var min = Vector.Build.DenseOfArray(new float[] { float.MaxValue, float.MaxValue, float.MaxValue });
-            for(int i = 0; i < 3; i++) {
+            for (int i = 0; i < 3; i++)
+            {
                 min[i] = Math.Min(vertex0[i], min[i]);
                 min[i] = Math.Min(vertex1[i], min[i]);
                 min[i] = Math.Min(vertex2[i], min[i]);
                 max[i] = Math.Max(vertex0[i], max[i]);
                 max[i] = Math.Max(vertex1[i], max[i]);
                 max[i] = Math.Max(vertex2[i], max[i]);
-                if(min[i] > max[i]) {
+                if (min[i] > max[i])
+                {
                     var tmp = min[i];
                     min[i] = max[i];
                     max[i] = tmp;
                 }
             }
-            AABB = new Voxel(new Vector[] {min*2, max*2});
+            AABB = new Voxel(new Vector[] { min, max });
         }
         public Vector CalcNormal()
         {
@@ -220,18 +242,34 @@ namespace Raytracing
             MakeAABB();
         }
 
-        public override void RotateZ(float theta) {
+        public override void RotateZ(float theta)
+        {
             var matrix = GetRotateZMatrix(theta);
-            var v04 = vertex0.GetVector4();
-            var v14 = vertex1.GetVector4();
-            var v24 = vertex2.GetVector4();
-            v04 = matrix * v04;
-            v14 = matrix * v14;
-            v24 = matrix * v24;
-            vertex0 = v04.SubVector(0,3);
-            vertex1 = v14.SubVector(0,3);
-            vertex2 = v24.SubVector(0,3);
-            center = (vertex0 + vertex1 + vertex2) / 3; 
+            vertex0 = matrix * vertex0;
+            vertex1 = matrix * vertex1;
+            vertex2 = matrix * vertex2;
+            center = (vertex0 + vertex1 + vertex2) / 3;
+            CalcNormal();
+            MakeAABB();
+        }
+        public override void RotateX(float theta)
+        {
+            var matrix = GetRotateXMatrix(theta);
+            vertex0 = matrix * vertex0;
+            vertex1 = matrix * vertex1;
+            vertex2 = matrix * vertex2;
+            center = (vertex0 + vertex1 + vertex2) / 3;
+            CalcNormal();
+            MakeAABB();
+        }
+
+        public override void RotateY(float theta)
+        {
+            var matrix = GetRotateYMatrix(theta);
+            vertex0 = matrix * vertex0;
+            vertex1 = matrix * vertex1;
+            vertex2 = matrix * vertex2;
+            center = (vertex0 + vertex1 + vertex2) / 3;
             CalcNormal();
             MakeAABB();
         }
@@ -239,15 +277,22 @@ namespace Raytracing
         public override void Translate(float tx, float ty, float tz)
         {
             var matrix = GetTranslateMatrix(tx, ty, tz);
-            var v04 = vertex0.GetVector4();
-            var v14 = vertex1.GetVector4();
-            var v24 = vertex2.GetVector4();
-            v04 = matrix * v04;
-            v14 = matrix * v14;
-            v24 = matrix * v24;
-            vertex0 = v04.SubVector(0,3);
-            vertex1 = v14.SubVector(0,3);
-            vertex2 = v24.SubVector(0,3);
+            var t = Vector.Build.DenseOfArray(new float[] { tx, ty, tz });
+            vertex0 += t;
+            vertex1 += t;
+            vertex2 += t;
+            // vertex0 = matrix * vertex0;
+            // vertex0 = matrix * vertex1;
+            // vertex0 = matrix * vertex2;
+            // var v04 = vertex0.GetVector4();
+            // var v14 = vertex1.GetVector4();
+            // var v24 = vertex2.GetVector4();
+            // v04 = matrix * v04;
+            // v14 = matrix * v14;
+            // v24 = matrix * v24;
+            // vertex0 = v04.SubVector(0, 3);
+            // vertex1 = v14.SubVector(0, 3);
+            // vertex2 = v24.SubVector(0, 3);
             center = (vertex0 + vertex1 + vertex2) / 3;
             MakeAABB();
         }
@@ -308,18 +353,28 @@ namespace Raytracing
             MakeAABB();
             // System.Console.WriteLine(this.material.color);
         }
+
+        internal Sphere(Vector center, float radius)
+        {
+            this.center = center;
+            this.radius = radius;
+            this.radius2 = radius * radius;
+        }
         public override void Scale(float sx, float sy, float sz)
         {
+            var s = Vector.Build.DenseOfArray(new float[] { sx, sy, sz });
+            center = center.Multiply(s);
             radius = radius * ((sx + sy + sz) / 3);
+            MakeAABB();
         }
 
-        public override void MakeAABB() {
+        public override void MakeAABB()
+        {
             var s = Vector.Build.DenseOfArray(new float[] {
                 radius * 2,
                 radius * 2,
                 radius * 2
             });
-
             AABB = new Voxel(center, s);
         }
 
@@ -351,6 +406,7 @@ namespace Raytracing
             // if(tca < 0.0f) return false; // sphere is behind camera
 
             float d2 = ray_to_center.DotProduct(ray_to_center) - (tca * tca);
+            // System.Console.WriteLine(Math.Sqrt(d2));
             // float d2 = ray_to_center.DotProduct(ray_to_center) - tca * tca;
             if (d2 > (radius2)) return false; // NO INTERSECTION
             float t1c = (float)Math.Sqrt(radius2 - d2);
@@ -361,6 +417,7 @@ namespace Raytracing
             float a = ray.direction.DotProduct(ray.direction);
             float b = ray.direction.DotProduct(2.0f * center_to_ray);
             float c = center_to_ray.DotProduct(center_to_ray) - (radius2);
+
             if (!Extensions.Quadratic(a, b, c, ref t0, ref t1))
                 return false;
 
@@ -476,7 +533,8 @@ namespace Raytracing
             return N.Normalize();
         }
 
-        public override void MakeAABB() {
+        public override void MakeAABB()
+        {
             var s = Vector.Build.DenseOfArray(new float[] {
                 max_bounds[0] - min_bounds[0],
                 max_bounds[1] - min_bounds[1],
@@ -559,7 +617,7 @@ namespace Raytracing
             float u = (nI[0] + 1) / 2;
             float v = (nI[1] + 1) / 2;
             float w = (nI[2] + 1) / 2;
-            
+
             return Vector.Build.DenseOfArray(new float[] { t_1, t_2 });
         }
 
