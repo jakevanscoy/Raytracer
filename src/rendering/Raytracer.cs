@@ -22,7 +22,7 @@ namespace Raytracing
         public Raytracer(int width = 800, int height = 800)
         {
             // initialize default world and Object3Ds
-            world = SceneFactory.GetBlackHoleWorld(width, height);
+            world = SceneFactory.GetDefaultWorld(width, height);
             System.Console.WriteLine("Building k-d tree...");
             world.MakeTree();
             System.Console.WriteLine(KDTree.PrintNode(world.tree));
@@ -70,6 +70,7 @@ namespace Raytracing
             );
             if (fileName != "")
             {
+                ToneReproduction(ref image, 1000.0f, true);
                 image.Save(fileName);
             }
             return image;
@@ -137,14 +138,14 @@ namespace Raytracing
             string message = "Rendering " + frames + " " + world.width + "x" + world.height + " frames...";
             var rpb = new ProgressBar(1, frames, 55, pstyles, message, "Frame");
 
-            BlackHole bh = null;
-            foreach (Shape3D obj in world.objects)
-            {
-                if (obj is BlackHole)
-                {
-                    bh = obj as BlackHole;
-                }
-            }
+            // BlackHole bh = null;
+            // foreach (Shape3D obj in world.objects)
+            // {
+            //     if (obj is BlackHole)
+            //     {
+            //         bh = obj as BlackHole;
+            //     }
+            // }
             var interval = (int)((length / (float)frames) * 100);
             var lookStep = 40f / frames;
             var srStep = 0.3f / frames;
@@ -155,26 +156,41 @@ namespace Raytracing
             var time = frameWatch.Elapsed;
             var est = time.Multiply(frames - 1);
             rpb.PrintProgressEstTime(1, est);
+            var ldm = 0.1f;
+            var ldm_max = 10f;
+            var step = ldm_max - ldm / frames;
             for (var f = 1; f <= frames; f++)
             {
-                if (f < frames / 4)
+                // if (f < frames / 4)
+                // {
+                //     bh.center[0] -= lookStep;
+                //     world.cameras[0].lookAt[0] -= lookStep / 3.5f;
+                // }
+                // else if (f < ((frames / 4) * 3))
+                // {
+                //     bh.center[0] += lookStep;
+                //     world.cameras[0].lookAt[0] += lookStep / 3.5f;
+                // }
+                // else
+                // {
+                //     bh.center[0] -= lookStep;
+                //     world.cameras[0].lookAt[0] -= lookStep / 3.5f;
+                // }
+                frameWatch = System.Diagnostics.Stopwatch.StartNew();
+                var imageTmp = Render(samples: 1);
+                ToneReproduction(ref imageTmp, ldm, true);
+                if (f <= frames / 3)
                 {
-                    bh.center[0] -= lookStep;
-                    world.cameras[0].lookAt[0] -= lookStep / 3.5f;
+                    ldm += step;
                 }
-                else if (f < ((frames / 4) * 3))
+                else if (f <= ((frames / 3) * 2))
                 {
-                    bh.center[0] += lookStep;
-                    world.cameras[0].lookAt[0] += lookStep / 3.5f;
+                    ldm -= step;
                 }
                 else
                 {
-                    bh.center[0] -= lookStep;
-                    world.cameras[0].lookAt[0] -= lookStep / 3.5f;
+                    ldm += step;
                 }
-                frameWatch = System.Diagnostics.Stopwatch.StartNew();
-                var imageTmp = Render(samples: 1);
-                // imageTmp.Frames[0].MetaData.FrameDelay = interval;
                 lock (this)
                 {
                     // add current image frame to master image frames
@@ -191,6 +207,57 @@ namespace Raytracing
             while (!saved)
             {
                 saved = SaveGif(masterImage, filename, attempts++);
+            }
+        }
+
+        public void ToneReproduction(ref Image<Rgba32> image, float LdMax, bool rein)
+        {
+            var absColors = new Vector[image.Width, image.Height];
+            var sum = 0f;
+            var c = image.Width * image.Height;
+            for (int x = 0; x < image.Width; x++)
+            {
+                for (int y = 0; y < image.Height; y++)
+                {
+                    var cVec = image[x, y].ToVector();
+                    sum += (float)Math.Abs(Math.Log(Math.Abs(cVec.Length()) + 0.001));
+                    absColors[x, y] = cVec;
+                }
+            }
+            var log_avg = sum / c;
+            if (rein)
+            {
+                var a = 0.18f;
+                for (int x = 0; x < image.Width; x++)
+                {
+                    for (int y = 0; y < image.Height; y++)
+                    {
+                        var cVec = image[x, y].ToVector();
+                        var sVec = a / log_avg * cVec;
+                        var rVec = sVec / (1 + sVec);
+                        var target = rVec * LdMax;
+                        // System.Console.WriteLine(target);
+                        image[x, y] = target.ToColor();
+                    }
+                }
+            }
+            else
+            {
+                var la_pow = (float)Math.Pow(log_avg, 0.4);
+                var ld_pow = (float)Math.Pow(LdMax / 2, 0.4);
+                var scale = (float)Math.Pow((1.219f + ld_pow) / (1.219 + la_pow), 2.5);
+                System.Console.WriteLine(LdMax);
+                System.Console.WriteLine(log_avg);
+                System.Console.WriteLine(ld_pow);
+                System.Console.WriteLine(scale);
+                for (int x = 0; x < image.Width; x++)
+                {
+                    for (int y = 0; y < image.Height; y++)
+                    {
+                        var target = absColors[x, y] * scale;
+                        image[x, y] = target.ToColor();
+                    }
+                }
             }
         }
         public bool SaveGif(Image<Rgba32> image, string filename, int attempts)

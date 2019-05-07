@@ -16,10 +16,10 @@ namespace Raytracing
         public static World GetDefaultWorld(int width, int height)
         {
 
-            World world = new World(width, height, Rgba32.Firebrick);
+            World world = new World(width, height, Rgba32.Black);
             // initialize light source 
             Vector lightPos = Vector.Build.DenseOfArray(new float[] { 0.0f, -0.4f, -5.0f });
-            LightSource l1 = new LightSource(lightPos, Rgba32.White, 20.0f);
+            LightSource l1 = new LightSource(lightPos, Rgba32.White, 10.0f);
             world.AddLightSource(l1);
 
             // initialize camera
@@ -36,8 +36,8 @@ namespace Raytracing
             Rgba32[] s0colors = new Rgba32[] { Rgba32.Blue, Rgba32.White };
             float[] s0coefficients = new float[] { 0.0f, 0.0f };
             PhongMaterial s0PhongMaterial = new PhongMaterial(illuminationModel, s0colors, s0coefficients, 7.0f);
-            s0PhongMaterial.kTransmission = 0.8f;
-            Sphere sphere0 = new Sphere(s0Center, s0Radius, TransmissiveMaterial.GetTransmissiveMaterial(illuminationModel));
+            s0PhongMaterial.kTransmission = 0.95f;
+            Sphere sphere0 = new Sphere(s0Center, s0Radius, s0PhongMaterial);
 
             // sphere 1
             Vector s1Center = Vector.Build.DenseOfArray(new float[] { -0.0f, -0.1f, -1.75f });
@@ -67,10 +67,10 @@ namespace Raytracing
             var max_y_n = Vector.Build.DenseOfArray(new float[] { 0.0f, 0.0f, -1.0f });
             Plane max_y = new Plane(max_y_c, max_y_n, 3.0f, 3.0f, Mirror.GetMirror(illuminationModel));
 
-            // world.AddObject(sphere0);
-            // world.AddObject(sphere1);
+            world.AddObject(sphere0);
+            world.AddObject(sphere1);
             world.AddObject(plane0);
-            world.AddObject(max_y);
+            // world.AddObject(max_y);
 
             return world;
         }

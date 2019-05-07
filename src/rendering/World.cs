@@ -227,7 +227,7 @@ namespace Raytracing
 
         public bool SpawnRayKD(Ray ray, out Rgba32 color, int depth = 0)
         {
-            if (depth > 10)
+            if (depth > 4)
             {
                 color = (ambientLight.ToVector() * ambientCoefficient).ToColor();//background;
                 return false;
