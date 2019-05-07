@@ -17,13 +17,30 @@ namespace Raytracing
         public static float G;
         public float M;
 
+        public Sphere eventHorizon;
+
         // Schwarzschild Radius
-        public float sradius;
+        private float sradius;
+        public float Sradius
+        {
+            get
+            {
+                return sradius;
+            }
+            set
+            {
+                sradius = value;
+                eventHorizon.radius = value;
+                eventHorizon.radius2 = value * value;
+                // this.radius = value * 2;
+                // this.radius2 = radius * radius;
+            }
+        }
 
         public BlackHole(Vector center, float r, float sr) : base(center, r)
         {
             sradius = sr;
-            radius = r;
+            eventHorizon = new Sphere(center, sr, new BasicMaterial(Rgba32.Black));
         }
     }
 
@@ -46,7 +63,7 @@ namespace Raytracing
         {
             // calculate deflection angle based on Schwarzschild radius
             float d = (float)Math.Abs((blackHole.center - intersection).Length());
-            var deflectionAngle = 2f * (blackHole.sradius / d);
+            var deflectionAngle = 2f * (blackHole.Sradius / d);
             deflectionAngle *= (float)(Math.PI / 180f);
             System.Console.WriteLine(deflectionAngle);
             // axis of rotation = unit vector perpendicular to both ray direction and normal vector

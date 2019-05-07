@@ -120,7 +120,6 @@ namespace Raytracing
             return world;
         }
 
-
         public static World GetBoxWorld(int width, int height)
         {
 
@@ -165,17 +164,17 @@ namespace Raytracing
             World world = new World(width, height, Rgba32.Black);
             // initialize light source 
             Vector lightPos = Vector.Build.DenseOfArray(new float[] { -15.0f, 0f, 130.0f });
-            LightSource l1 = new LightSource(lightPos, Rgba32.White, 100.0f);
+            LightSource l1 = new LightSource(lightPos, Rgba32.White, 150.0f);
             world.AddLightSource(l1);
 
             Vector lightPos2 = Vector.Build.DenseOfArray(new float[] { 15.0f, 0f, 130.0f });
-            LightSource l2 = new LightSource(lightPos2, Rgba32.White, 100.0f);
+            LightSource l2 = new LightSource(lightPos2, Rgba32.White, 150.0f);
             world.AddLightSource(l2);
 
             // initialize camera
             Vector cameraPos = Vector.Build.DenseOfArray(new float[] { 0.0f, 0.0f, 0.0f });
             Vector cameraUp = Vector.Build.DenseOfArray(new float[] { 0.0f, -1.0f, 0.0f });
-            Vector cameraLookAt = Vector.Build.DenseOfArray(new float[] { 0.0f, 0.0f, 10.0f });
+            Vector cameraLookAt = Vector.Build.DenseOfArray(new float[] { 0f, 0.0f, 15.0f });
             world.cameras.Add(new Camera(cameraPos, cameraLookAt, cameraUp, world));
 
             PhongIlluminationModel illuminationModel = new PhongIlluminationModel(world);
@@ -190,14 +189,10 @@ namespace Raytracing
             var mat2 = PhongMaterial.Blue(illuminationModel);
             Plane max_z2 = new Plane(max_z2_c, max_z2_n, 100.0f, 100.0f, mat2);
 
-            var bh_c = Vector.Build.DenseOfArray(new float[] { 0.0f, 0.0f, 20.0f });
-            var bh_sr = 0.6f;
-            BlackHole bh = new BlackHole(bh_c, 1.0f, bh_sr);
+            var bh_c = Vector.Build.DenseOfArray(new float[] { 0.0f, 0.0f, 50.0f });
+            var bh_sr = 1.5f;
+            BlackHole bh = new BlackHole(bh_c, 3.0f, bh_sr);
 
-            // var sphere = new Sphere(bh_c, .3f, PhongMaterial.Red(illuminationModel));
-
-            System.Console.WriteLine(bh.sradius);
-            // bh.material = new BlackHoleMaterial(bh, world);
             bh.material = new LenseMaterial(illuminationModel);
             world.AddObject(bh);
             world.AddObject(max_z1);
@@ -232,10 +227,6 @@ namespace Raytracing
             }
             return world;
         }
-
-
-
-
 
         public static World GetComplexWorld(int width, int height)
         {

@@ -157,62 +157,30 @@ namespace Raytracing
 
         public Vector ReflectAndRefractKD(Shape3D obj, Ray ray, Vector intersect, Vector normal, int depth)
         {
-            // var cVec = obj.material.Intersect(ray, intersect, normal, obj, true).ToVector();
             var cVec = Vector.Build.Dense(3);
-            var lIntersect = intersect + (normal * 0.001f);
             if (obj.material is LenseMaterial)
             {
                 var bh = obj as BlackHole;
-                var sw_radius = bh.sradius;
+                var sw_radius = bh.Sradius;
                 var ray_to_center = obj.center - ray.origin;
                 float tca = ray_to_center.DotProduct(ray.direction);
                 var p = ray.origin + (ray.direction * tca);
-                var d = (p - obj.center).Length();
+                var d = (float)Math.Abs((p - obj.center).Length());
                 if (d < sw_radius)
                 {
                     return cVec;
                 }
-                var a = 2 * sw_radius / d;
-                // System.Console.WriteLine(sw_radius / d);
-                var rO = intersect - (normal * 0.0001f);
-                var mat = obj.GetRotationMatrixAboutAxis(normal.CrossProduct(ray.direction).Normalize(), a);
-                var refract = (mat * ray.direction.GetVector4()).SubVector(0, 3).Normalize();
-                var rDotN = refract.DotProduct(normal);
+                var a = (2 * sw_radius / d);
+                var rO = intersect - (normal * (0.001f));
+                var rotationMatrix = obj.GetRotationMatrixAboutAxis(normal.CrossProduct(ray.direction).Normalize(), a);
+                var refract = (rotationMatrix * ray.direction.GetVector4()).SubVector(0, 3).Normalize();
                 Ray r = new Ray(rO, refract);
                 SpawnRayKD(r, out var reflectColor, depth + 1);
                 cVec += (reflectColor.ToVector());
-                // var ior = obj.material.kTransmission;
-                // float fresnel;
-                // Extensions.Fresnel(ray.direction, normal, ior, out fresnel);
-                // if (fresnel < 1)
-                // {
-                //     var n_fresnel = (fresnel) / 0.1f;
-                //     var n1 = airKt;
-                //     var n2 = ior;
-                //     var a = ior * (float)Math.PI / 180f;
-
-                //     // System.Console.WriteLine(n_fresnel);
-                //     // cVec[0] = 1.0f - ior;
-                //     var mat = obj.GetRotationMatrixAboutAxis(normal.CrossProduct(ray.direction).Normalize(), a);
-                //     // var refract = Extensions.Refract(ray.direction, normal, airKt, n2).Normalize();
-                //     var refract = (mat * ray.direction.GetVector4()).SubVector(0, 3).Normalize();
-                //     Ray r = new Ray(rO, refract);
-                //     SpawnRayKD(r, out var reflectColor, depth + 1);
-                //     cVec += (reflectColor.ToVector() * n_fresnel);
-                //     return cVec;
-                // }
-                // else
-                // {
-                //     var mat = obj.GetRotationMatrixAboutAxis(normal.CrossProduct(ray.direction).Normalize(), 0.1f);
-                //     var refract = (mat * ray.direction.GetVector4()).SubVector(0, 3).Normalize();
-                //     Ray r = new Ray(rO, refract);
-                //     SpawnRayKD(r, out var reflectColor, depth + 1);
-                //     cVec += (reflectColor.ToVector());
-                //     return cVec;
-                // }
             }
             if (obj.material.kReflection > 0f)
             {
+                var lIntersect = intersect + (normal * 0.001f);
                 var reflect = Extensions.Reflected(-ray.direction, normal).Normalize();
                 Ray r = new Ray(lIntersect, reflect);
                 SpawnRayKD(r, out var reflectColor, depth + 1);
@@ -243,15 +211,6 @@ namespace Raytracing
             // color = (ambientLight.ToVector() * ambientCoefficient).ToColor();
             var cVec = Vector.Build.Dense(3);
             Shape3D obj = TraceRay(ray, out var intersect, out var normal);
-            if (obj is BlackHole)
-            {
-                System.Console.WriteLine(obj);
-                var bhm = obj.material as BlackHoleMaterial;
-                cVec += bhm.Intersect(ray, intersect, normal, depth, true).ToVector();
-                cVec += ReflectAndRefractKD(obj, ray, intersect, normal, depth);
-                color = cVec.ToColor();
-                return true;
-            }
             if (obj != null)
             {
                 cVec += obj.material.Intersect(ray, intersect, normal, obj).ToVector();
@@ -268,7 +227,7 @@ namespace Raytracing
 
         public bool SpawnRayKD(Ray ray, out Rgba32 color, int depth = 0)
         {
-            if (depth > 5)
+            if (depth > 10)
             {
                 color = (ambientLight.ToVector() * ambientCoefficient).ToColor();//background;
                 return false;

@@ -146,9 +146,9 @@ namespace Raytracing
                 }
             }
             var interval = (int)((length / (float)frames) * 100);
+            var lookStep = 40f / frames;
+            var srStep = 0.3f / frames;
             var frameWatch = System.Diagnostics.Stopwatch.StartNew();
-            var rstep = 1.0f / frames;
-            world.cameras[0].Translate(rstep, 0, 0);
             var masterImage = Render(samples: 1);
             masterImage.Frames[0].MetaData.FrameDelay = interval;
             frameWatch.Stop();
@@ -157,22 +157,21 @@ namespace Raytracing
             rpb.PrintProgressEstTime(1, est);
             for (var f = 1; f <= frames; f++)
             {
-                if (f < frames / 2)
+                if (f < frames / 4)
                 {
-                    // bh.center += 0.01f;
-                    bh.sradius -= 0.01f;
-                    // bh.radius2 = bh.radius * bh.radius;
-                    // bh.material.kTransmission += 0.01f;
+                    bh.center[0] -= lookStep;
+                    world.cameras[0].lookAt[0] -= lookStep / 3.5f;
+                }
+                else if (f < ((frames / 4) * 3))
+                {
+                    bh.center[0] += lookStep;
+                    world.cameras[0].lookAt[0] += lookStep / 3.5f;
                 }
                 else
                 {
-                    // bh.center -= 0.01f;
-                    bh.sradius += 0.01f;
-                    // bh.radius2 = bh.radius * bh.radius;
-                    // bh.material.kTransmission -= 0.01f;
+                    bh.center[0] -= lookStep;
+                    world.cameras[0].lookAt[0] -= lookStep / 3.5f;
                 }
-
-
                 frameWatch = System.Diagnostics.Stopwatch.StartNew();
                 var imageTmp = Render(samples: 1);
                 // imageTmp.Frames[0].MetaData.FrameDelay = interval;
@@ -186,8 +185,6 @@ namespace Raytracing
                 time = frameWatch.Elapsed;
                 est = time.Multiply(frames - (f));
                 rpb.PrintProgressEstTime(f, est);
-                // y_max.Translate(0.01f, 0.01f, -0.1f);
-
             }
             bool saved = false;
             int attempts = 0;

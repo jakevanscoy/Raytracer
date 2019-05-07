@@ -44,5 +44,6 @@ namespace Raytracing
             return resultColor;
         }
 
+
     }
 }
